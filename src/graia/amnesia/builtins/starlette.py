@@ -8,6 +8,7 @@ from starlette.applications import Starlette
 
 # 这里为简化版, 完整版是在 avilla.io 那边
 
+
 class StarletteServer(ASGIHandlerProvider):
     starlette: Starlette
     service: "StarletteService"

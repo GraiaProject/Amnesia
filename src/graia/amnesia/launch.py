@@ -31,7 +31,9 @@ class RequirementResolveFailed(Exception):
     pass
 
 
-def resolve_requirements(components: Set[LaunchComponent]) -> List[Set[LaunchComponent]]:
+def resolve_requirements(
+    components: Set[LaunchComponent],
+) -> List[Set[LaunchComponent]]:
     resolved = set()
     result = []
     while components:

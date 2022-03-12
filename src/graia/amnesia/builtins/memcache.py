@@ -14,7 +14,11 @@ class Memcache(ExportInterface):
     cache: Dict[str, Tuple[Optional[float], Any]]
     expire: List[Tuple[float, str]]
 
-    def __init__(self, cache: Dict[str, Tuple[Optional[float], Any]], expire: List[Tuple[float, str]]):
+    def __init__(
+        self,
+        cache: Dict[str, Tuple[Optional[float], Any]],
+        expire: List[Tuple[float, str]],
+    ):
         self.cache = cache
         self.expire = expire
 
@@ -79,7 +83,7 @@ class MemcacheService(Service):
 
     def get_status(self, _):
         raise NotImplementedError
-        
+
     @property
     def launch_component(self) -> LaunchComponent:
         return LaunchComponent("cache.client", set(), mainline=self.launch_mainline)

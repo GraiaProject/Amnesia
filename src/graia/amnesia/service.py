@@ -44,7 +44,6 @@ class Service(metaclass=ABCMeta):
     def get_interface(self, interface_type: Type[TInterface]) -> TInterface:
         pass
 
-    @abstractmethod
     def get_status(self, target: Any) -> Status:
         raise NotImplementedError
 

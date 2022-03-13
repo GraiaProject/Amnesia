@@ -5,6 +5,7 @@ description = "a collection of shared components for graia"
 license = "MIT"
 authors = ["GreyElaina <GreyElaina@outlook.com>"]
 packages = [{ include = "graia", from = "src" }]
+readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.8"

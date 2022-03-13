@@ -1,13 +1,4 @@
-from typing import (
-    Callable,
-    Dict,
-    Hashable,
-    List,
-    Set,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import Callable, Dict, Hashable, List, Set, Tuple, TypeVar, Union
 
 T = TypeVar("T")
 H = TypeVar("H", bound=Hashable)

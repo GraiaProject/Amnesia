@@ -3,8 +3,8 @@ from datetime import timedelta
 from heapq import heappop, heappush
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Type
-from graia.amnesia.interface import ExportInterface
 
+from graia.amnesia.interface import ExportInterface
 from graia.amnesia.launch import LaunchComponent
 from graia.amnesia.manager import LaunchManager
 from graia.amnesia.service import Service
@@ -31,7 +31,9 @@ class Memcache(ExportInterface):
                 del self.cache[key]
         return default
 
-    async def set(self, key: str, value: Any, expire: Optional[timedelta] = None) -> None:
+    async def set(
+        self, key: str, value: Any, expire: Optional[timedelta] = None
+    ) -> None:
         if expire is None:
             self.cache[key] = (None, value)
             return

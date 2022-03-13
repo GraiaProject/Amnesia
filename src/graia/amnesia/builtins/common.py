@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Awaitable, Callable, MutableMapping, Type, Any
+    from typing import Any, Awaitable, Callable, MutableMapping, Type
 
     from graia.amnesia.interface import ExportInterface
 

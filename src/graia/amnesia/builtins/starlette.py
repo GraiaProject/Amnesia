@@ -1,10 +1,10 @@
 from typing import Optional
-from graia.amnesia.builtins.common import ASGIHandlerProvider
-from graia.amnesia.launch import LaunchComponent
 
-from graia.amnesia.service import Service
 from starlette.applications import Starlette
 
+from graia.amnesia.builtins.common import ASGIHandlerProvider
+from graia.amnesia.launch import LaunchComponent
+from graia.amnesia.service import Service
 
 # 这里为简化版, 完整版是在 avilla.io 那边
 

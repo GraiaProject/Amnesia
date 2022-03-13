@@ -1,10 +1,11 @@
 import asyncio
+
+from uvicorn import Config, Server
+
 from graia.amnesia.builtins.common import ASGIHandlerProvider
 from graia.amnesia.launch import LaunchComponent
 from graia.amnesia.manager import LaunchManager
 from graia.amnesia.service import Service
-
-from uvicorn import Config, Server
 
 
 class UvicornService(Service):

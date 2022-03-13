@@ -1,19 +1,10 @@
 import asyncio
 from abc import ABCMeta, abstractmethod
-from typing import (
-    Any,
-    Callable,
-    ClassVar,
-    Dict,
-    Set,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import (Any, Callable, ClassVar, Dict, Set, Tuple, Type, TypeVar,
+                    Union)
 
-from graia.amnesia.launch import LaunchComponent
 from graia.amnesia.interface import ExportInterface
+from graia.amnesia.launch import LaunchComponent
 from graia.amnesia.status import Status
 
 TInterface = TypeVar("TInterface", bound=ExportInterface)

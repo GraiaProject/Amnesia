@@ -1,9 +1,4 @@
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generic,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from graia.amnesia.status import Status
 

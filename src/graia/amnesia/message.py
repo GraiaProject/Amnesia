@@ -1,5 +1,7 @@
-from copy import deepcopy, copy as _lib_copy
+from copy import copy as _lib_copy
+from copy import deepcopy
 from typing import TYPE_CHECKING, Iterable, List, Type, TypeVar, Union
+
 from .element import Element, Text
 
 
@@ -128,7 +130,9 @@ class MessageChain:
         elif issubclass(item, Element):
             return self.get(item)
         else:
-            raise NotImplementedError("{0} is not allowed for item getting".format(type(item)))
+            raise NotImplementedError(
+                "{0} is not allowed for item getting".format(type(item))
+            )
 
     def subchain(self, item: slice, ignore_text_index: bool = False) -> "MessageChain":
         """对消息链执行分片操作
@@ -147,7 +151,11 @@ class MessageChain:
             if item.start[1] is not None and first_slice:  # text slice
                 if not isinstance(first_slice[0], Text):
                     if not ignore_text_index:
-                        raise TypeError("the sliced chain does not starts with a Text: {}".format(first_slice[0]))
+                        raise TypeError(
+                            "the sliced chain does not starts with a Text: {}".format(
+                                first_slice[0]
+                            )
+                        )
                     else:
                         result = first_slice
                 else:
@@ -162,7 +170,11 @@ class MessageChain:
             first_slice = result[: item.stop[0]]
             if item.stop[1] is not None and first_slice:  # text slice
                 if not isinstance(first_slice[-1], Text):
-                    raise TypeError("the sliced chain does not ends with a Text: {}".format(first_slice[-1]))
+                    raise TypeError(
+                        "the sliced chain does not ends with a Text: {}".format(
+                            first_slice[-1]
+                        )
+                    )
                 final_text = first_slice[-1].text[: item.stop[1]]  # type: ignore
                 result = [
                     *first_slice[:-1],
@@ -268,7 +280,9 @@ class MessageChain:
         """
         return all(isinstance(i, element_classes) for i in self.content)
 
-    def append(self, element: Union[Element, str], copy: bool = False) -> "MessageChain":
+    def append(
+        self, element: Union[Element, str], copy: bool = False
+    ) -> "MessageChain":
         """
         向消息链最后追加单个元素
 

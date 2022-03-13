@@ -2,9 +2,9 @@
 
 # Amnesia
 
-_A collection of common components for Graia Project._ 
+_A collection of common components for Graia Project._
 
-> 于是明天仍将到来.  
+> 于是明天仍将到来.
 > 每一天都会带来新的邂逅, 纵使最终忘却也不会害怕明天到来.
 
 </div>

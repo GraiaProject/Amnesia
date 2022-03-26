@@ -40,10 +40,7 @@ class LaunchManager:
         )
 
     def has_service(self, service_type: Type[Service]) -> bool:
-        for service in self.services:
-            if isinstance(service, service_type):
-                return True
-        return False
+        return any(isinstance(service, service_type) for service in self.services)
 
     def get_service(self, service_type: Type[Service]) -> Service:
         for service in self.services:
@@ -164,8 +161,8 @@ class LaunchManager:
             logger.info("[green bold]cleanup finished.")
             logger.warning("[red bold]exiting...")
 
-    def launch_blocking(self):
-        loop = asyncio.new_event_loop()
+    def launch_blocking(self, *, loop: Optional[asyncio.AbstractEventLoop] = None):
+        loop = loop or asyncio.new_event_loop()
         self.sigexit = asyncio.Event(loop=loop)
         launch_task = loop.create_task(self.launch(), name="amnesia-launch")
         try:

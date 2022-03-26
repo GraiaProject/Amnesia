@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import (
     Any,
     Callable,
@@ -20,6 +20,7 @@ from graia.amnesia.transport.interface import ExtraContent, TransportInterface
 from graia.amnesia.transport.signature import TransportSignature
 
 
+@dataclass
 class HttpRequest(ExtraContent):
     headers: Dict[str, str]
     query_params: Dict[str, str]
@@ -27,6 +28,13 @@ class HttpRequest(ExtraContent):
     host: str
     client_ip: str
     client_port: int
+    cookies: Dict[str, str]
+
+
+@dataclass
+class HttpResponseExtra(ExtraContent):
+    status: int
+    headers: Dict[str, str]
     cookies: Dict[str, str]
 
 
@@ -121,7 +129,7 @@ class http:
         ]
     ):
         path: str
-        method: List[Literal["GET", "POST", "PUT", "DELETE"]] = ["GET"]
+        method: List[Literal["GET", "POST", "PUT", "DELETE"]] = field(default_factory=lambda: ["GET"])  # type: ignore
 
     @dataclass
     class WebsocketEndpoint(

@@ -31,9 +31,7 @@ class Memcache(ExportInterface):
                 del self.cache[key]
         return default
 
-    async def set(
-        self, key: str, value: Any, expire: Optional[timedelta] = None
-    ) -> None:
+    async def set(self, key: str, value: Any, expire: Optional[timedelta] = None) -> None:
         if expire is None:
             self.cache[key] = (None, value)
             return

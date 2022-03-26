@@ -35,9 +35,7 @@ class LaunchManager:
         self._mapping_service_interfaces()
 
     def _mapping_service_interfaces(self):
-        self._service_interfaces = priority_strategy(
-            self.services, lambda s: s.supported_interface_types
-        )
+        self._service_interfaces = priority_strategy(self.services, lambda s: s.supported_interface_types)
 
     def has_service(self, service_type: Type[Service]) -> bool:
         return any(isinstance(service, service_type) for service in self.services)
@@ -52,19 +50,11 @@ class LaunchManager:
         self,
         id: str,
         requirements: Optional[Set[str]] = None,
-        mainline: Optional[
-            Callable[["LaunchManager"], Coroutine[None, None, Any]]
-        ] = None,
-        prepare: Optional[
-            Callable[["LaunchManager"], Coroutine[None, None, Any]]
-        ] = None,
-        cleanup: Optional[
-            Callable[["LaunchManager"], Coroutine[None, None, Any]]
-        ] = None,
+        mainline: Optional[Callable[["LaunchManager"], Coroutine[None, None, Any]]] = None,
+        prepare: Optional[Callable[["LaunchManager"], Coroutine[None, None, Any]]] = None,
+        cleanup: Optional[Callable[["LaunchManager"], Coroutine[None, None, Any]]] = None,
     ) -> LaunchComponent:
-        component = LaunchComponent(
-            id, requirements or set(), mainline, prepare, cleanup
-        )
+        component = LaunchComponent(id, requirements or set(), mainline, prepare, cleanup)
         self.launch_components[id] = component
         return component
 
@@ -98,29 +88,21 @@ class LaunchManager:
 
         logger.info(f"launch components count: {len(self.launch_components)}")
 
-        with RichStatus(
-            "[orange bold]preparing components...", console=self.rich_console
-        ) as status:
-            for component_layer in resolve_requirements(
-                set(self.launch_components.values())
-            ):
+        with RichStatus("[orange bold]preparing components...", console=self.rich_console) as status:
+            for component_layer in resolve_requirements(set(self.launch_components.values())):
                 tasks = [
                     asyncio.create_task(component.prepare(self), name=component.id)  # type: ignore
                     for component in component_layer
                     if component.prepare
                 ]
                 for task in tasks:
-                    task.add_done_callback(
-                        lambda t: status.update(f"{t.get_name()} prepared.")
-                    )
+                    task.add_done_callback(lambda t: status.update(f"{t.get_name()} prepared."))
                 if tasks:
                     await asyncio.wait(tasks)
             status.update("all launch components prepared.")
             await asyncio.sleep(1)
 
-        logger.info(
-            "[green bold]components prepared, switch to mainlines and block main thread."
-        )
+        logger.info("[green bold]components prepared, switch to mainlines and block main thread.")
 
         loop = asyncio.get_running_loop()
         tasks = [
@@ -129,9 +111,7 @@ class LaunchManager:
             if component.mainline
         ]
         for task in tasks:
-            task.add_done_callback(
-                lambda t: logger.info(f"mainline {t.get_name()} completed.")
-            )
+            task.add_done_callback(lambda t: logger.success(f"mainline {t.get_name()} completed."))
 
         logger.info(f"mainline count: {len(tasks)}")
         try:
@@ -144,9 +124,7 @@ class LaunchManager:
                 self.sigexit.set()
         finally:
             logger.info("[red bold]all mainlines exited, cleanup start.")
-            for component_layer in reversed(
-                resolve_requirements(set(self.launch_components.values()))
-            ):
+            for component_layer in reversed(resolve_requirements(set(self.launch_components.values()))):
                 tasks = [
                     asyncio.create_task(component.cleanup(self), name=component.id)  # type: ignore
                     for component in component_layer
@@ -154,9 +132,7 @@ class LaunchManager:
                 ]
                 if tasks:
                     for task in tasks:
-                        task.add_done_callback(
-                            lambda t: logger.info(f"{t.get_name()} cleanup finished.")
-                        )
+                        task.add_done_callback(lambda t: logger.success(f"{t.get_name()} cleanup finished."))
                     await asyncio.gather(*tasks)
             logger.info("[green bold]cleanup finished.")
             logger.warning("[red bold]exiting...")

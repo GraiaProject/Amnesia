@@ -18,9 +18,7 @@ class ExtraContent:
         return [
             name
             for name, field in inspect.getmembers(cls)
-            if not name.startswith("_")
-            and not callable(field)
-            and name not in SPECIALLISTS
+            if not name.startswith("_") and not callable(field) and name not in SPECIALLISTS
         ] + list(cls.__annotations__.keys())
 
 
@@ -46,9 +44,7 @@ class TransportInterface(Generic[T], metaclass=abc.ABCMeta):
 
     @overload
     @abc.abstractmethod
-    async def extra(
-        self, signature: "Type[TransportSignature[T]] | TransportSignature[T]"
-    ) -> T:
+    async def extra(self, signature: "Type[TransportSignature[T]] | TransportSignature[T]") -> T:
         ...
 
     @abc.abstractmethod

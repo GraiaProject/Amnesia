@@ -8,9 +8,7 @@ if TYPE_CHECKING:
 T_TransportHandler = TypeVar("T_TransportHandler", bound=Callable)
 
 
-class HandlerRegistrar(
-    Dict[TransportSignature[T_TransportHandler], T_TransportHandler]
-):
+class HandlerRegistrar(Dict[TransportSignature[T_TransportHandler], T_TransportHandler]):
     def signature(self, signature: TransportSignature[T_TransportHandler]):
         def decorator(method: T_TransportHandler):
             self[signature] = method
@@ -23,9 +21,7 @@ class HandlerRegistrar(
         return transport_class
 
 
-class CallbackRegistrar(
-    Dict[TransportSignature[T_TransportHandler], List[T_TransportHandler]]
-):
+class CallbackRegistrar(Dict[TransportSignature[T_TransportHandler], List[T_TransportHandler]]):
     def signature(self, signature: TransportSignature[T_TransportHandler]):
         def decorator(method: T_TransportHandler):
             self.setdefault(signature, []).append(method)

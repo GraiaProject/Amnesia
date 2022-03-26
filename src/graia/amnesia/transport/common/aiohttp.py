@@ -77,6 +77,4 @@ class AiohttpService(Service):
 
     @property
     def launch_component(self) -> LaunchComponent:
-        return LaunchComponent(
-            "http.universal_client", set(), cleanup=lambda _: self.session.close()
-        )
+        return LaunchComponent("http.universal_client", set(), cleanup=lambda _: self.session.close())

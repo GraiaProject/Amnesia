@@ -16,15 +16,9 @@ class LaunchComponent:
         self,
         component_id: str,
         required: Set[str],
-        mainline: Optional[
-            Callable[["LaunchManager"], Coroutine[None, None, Any]]
-        ] = None,
-        prepare: Optional[
-            Callable[["LaunchManager"], Coroutine[None, None, Any]]
-        ] = None,
-        cleanup: Optional[
-            Callable[["LaunchManager"], Coroutine[None, None, Any]]
-        ] = None,
+        mainline: Optional[Callable[["LaunchManager"], Coroutine[None, None, Any]]] = None,
+        prepare: Optional[Callable[["LaunchManager"], Coroutine[None, None, Any]]] = None,
+        cleanup: Optional[Callable[["LaunchManager"], Coroutine[None, None, Any]]] = None,
     ):
         self.id = component_id
         self.required = required

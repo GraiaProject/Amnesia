@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Hashable, List, Set, Tuple, TypeVar, Union
+from typing import Callable, Dict, Hashable, List, Set, Tuple, Type, TypeVar, Union
 
 T = TypeVar("T")
 H = TypeVar("H", bound=Hashable)
@@ -76,3 +76,22 @@ def priority_strategy(
         else:
             raise TypeError(f"{pattern} is not a valid pattern.")
     return result
+
+
+T = TypeVar("T")
+
+
+class Registrar(Dict):
+    def register(self, key):
+        def decorator(method):
+            self[key] = method
+            return method
+
+        return decorator
+
+    def decorate(self, attr):
+        def decorator(cls: Type[T]) -> Type[T]:
+            getattr(cls, attr).update(self)
+            return cls
+
+        return decorator

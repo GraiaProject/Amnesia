@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -11,12 +12,18 @@ from typing import (
     Tuple,
     Type,
     TypedDict,
+    Union,
     overload,
 )
 
 from typing_extensions import NotRequired, Unpack
 
-from graia.amnesia.transport.interface import ExtraContent, TransportInterface
+from graia.amnesia.transport.interface import (
+    ExtraContent,
+    PacketIO,
+    ReadonlyIO,
+    TransportIO,
+)
 from graia.amnesia.transport.signature import TransportSignature
 
 
@@ -38,54 +45,61 @@ class HttpResponseExtra(ExtraContent):
     cookies: Dict[str, str]
 
 
-class HttpServerRequestInterface(TransportInterface[bytes]):
-    @abstractmethod
-    async def receive(self) -> bytes:
-        raise NotImplementedError
+HttpResponse = Union[Tuple[Any, Unpack[Tuple[Dict[str, Any], ...]]], Any]
 
-    async def send(self, data: Any):
-        raise TypeError("use return response instead")
+
+class HttpServerRequestInterface(ReadonlyIO[bytes]):
+    @abstractmethod
+    async def read(self) -> bytes:
+        raise NotImplementedError
 
     @abstractmethod
     async def extra(self, signature: Any):
         raise NotImplementedError
 
+    async def headers(self) -> Dict[str, str]:
+        req = await self.extra(HttpRequest)  # type: HttpRequest
+        return req.headers
 
-class HttpClientResponseInterface(TransportInterface[bytes]):
+    async def cookies(self) -> Dict[str, str]:
+        req = await self.extra(HttpRequest)  # type: HttpRequest
+        return req.cookies
+
+
+class HttpClientResponseInterface(ReadonlyIO[bytes]):
+    @abstractmethod
+    async def read(self) -> bytes:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def extra(self, signature: Any):
+        raise NotImplementedError
+
+    async def headers(self) -> Dict[str, str]:
+        req = await self.extra(HttpRequest)  # type: HttpRequest
+        return req.headers
+
+    async def cookies(self) -> Dict[str, str]:
+        req = await self.extra(HttpRequest)  # type: HttpRequest
+        return req.cookies
+
+
+class WebsocketInterface(PacketIO[bytes]):
     @abstractmethod
     async def receive(self) -> bytes:
         raise NotImplementedError
 
+    @abstractmethod
     async def send(self, data: bytes):
-        raise TypeError("http client response can't send data")
+        raise NotImplementedError
 
     @abstractmethod
     async def extra(self, signature: Any):
         raise NotImplementedError
 
-
-class WebsocketInterface(TransportInterface[bytes]):
-    @abstractmethod
-    async def receive(self) -> bytes:
-        raise NotImplementedError
-
-    @abstractmethod
-    async def send(self, data: bytes):
-        raise NotImplementedError
-
-    @overload
-    @abstractmethod
-    async def extra(self, signature: Literal["accept"]) -> None:
-        ...
-
-    @overload
-    @abstractmethod
-    async def extra(self, signature: Literal["close"]) -> None:
-        ...
-
-    @abstractmethod
-    async def extra(self, signature: Any):
-        raise NotImplementedError
+    async def close(self):
+        if not self.closed:
+            await self.extra(websocket.close)
 
 
 def status(code: int):
@@ -123,8 +137,8 @@ class http:
     class Endpoint(
         TransportSignature[
             Callable[
-                [TransportInterface[bytes]],
-                "Tuple[Any, Unpack[Tuple[Dict[str, Any], ...]]] | Any",
+                [HttpServerRequestInterface],
+                HttpResponse,
             ]
         ]
     ):
@@ -132,8 +146,13 @@ class http:
         method: List[Literal["GET", "POST", "PUT", "DELETE"]] = field(default_factory=lambda: ["GET"])  # type: ignore
 
     @dataclass
-    class WebsocketEndpoint(
+    class WsEndpoint(
         Endpoint,
         TransportSignature[Callable[[WebsocketInterface], None]],
     ):
         method: Final[str] = "WS"
+
+
+class websocket:
+    accept = TransportSignature[None]()
+    close = TransportSignature[None]()

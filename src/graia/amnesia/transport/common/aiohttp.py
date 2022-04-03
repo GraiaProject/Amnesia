@@ -12,7 +12,7 @@ from graia.amnesia.transport.common.http import (
     HttpClientResponseInterface,
     HttpResponseExtra,
 )
-from graia.amnesia.transport.interface import TransportInterface
+from graia.amnesia.transport.interface import TransportIO
 from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.transport.signature import TransportSignature
 

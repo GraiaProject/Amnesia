@@ -1,18 +1,20 @@
 import abc
-from typing import List, Type, TypeVar, overload
+from typing import Dict, Generic, List, Optional, Type, TypeVar, overload
 
 from graia.amnesia.transport import Transport
 
-T = TypeVar("T")
+K = TypeVar("K")
+V = TypeVar("V")
 
 
-class TransportRider(metaclass=abc.ABCMeta):
-    transports: List["Transport | Type[Transport]"]
+class TransportRider(Generic[K, V], metaclass=abc.ABCMeta):
+    connections: Dict[K, V]
+    transports: List[Transport]
 
     @abc.abstractmethod
-    def ensure_transport(self, transport: "Transport | Type[Transport]") -> None:
+    def io(self, id: Optional[K] = None):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def remove_transport(self, transport: "Transport | Type[Transport]") -> None:
+    def use(self, transport: Transport):
         raise NotImplementedError

@@ -12,7 +12,6 @@ from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http import (
     AbstactClientRequestIO,
     AbstractWebsocketIO,
-    HttpRequest,
     HttpResponse,
     websocket,
 )

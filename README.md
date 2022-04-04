@@ -26,10 +26,13 @@ Amnesia 是一系列共用组件的集合, 包含了以下内容:
 
  - 消息链 `MessageChain`, 沿袭自 Avilla 实现和 Ariadne 部分方法实现;
  - `Element` 基类和 `Text` 消息元素实现;
- - 完整的 Launch API, 沿袭自 Avilla;
- - 轻量化 `Status` 实现的 Service API, 沿袭自 Avilla;
+ - `Launch API`: 程序生命周期管理, 提供准备(`prepare`), 主线(`mainline`) 与 清理(`cleanup`) 三个时间节点; 支持依赖编排;
+ - 轻量化实现的 `Service`;
  - 轻量化的内存缓存实现 `Memcache`, 原版本由 @ProgramRipper 实现, 沿袭自 Avilla;
- - 对于 `uvicorn` 与 `starlette` 的**基本**支持, 从完整版修改轻量化而来, 沿袭自 Avilla.
+ - `Transport API`: 职权分派, 交互主导的网络通信封装;
+   - `uvicorn`: ASGI Runner;
+   - `starlette`: ASGI Application;
+   - `aiohttp`: Http & WebSocket Client.
 
 通过 Amnesia, 我们希望能更加轻量化第三方库的依赖, 并籍此促进社区的发展.
 

@@ -1,38 +1,121 @@
 import asyncio
 import weakref
 from functools import partial
-from typing import Optional, Type
+from typing import Any, Generic, Optional, Type, TypeVar, Union, overload
 
-from aiohttp import ClientResponse, ClientSession
+from aiohttp import ClientResponse, ClientSession, ClientWebSocketResponse, WSMsgType
 
 from graia.amnesia.interface import ExportInterface
 from graia.amnesia.launch import LaunchComponent
 from graia.amnesia.service import Service
+from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http import (
-    HttpClientResponseInterface,
-    HttpResponseExtra,
+    AbstactClientRequestIO,
+    AbstractWebsocketIO,
+    HttpRequest,
+    HttpResponse,
+    websocket,
 )
+from graia.amnesia.transport.exceptions import ConnectionClosed
 from graia.amnesia.transport.interface import TransportIO
 from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.transport.signature import TransportSignature
 
 
-class AiohttpClientTransportInterface(HttpClientResponseInterface):
+class ClientRequestIO(AbstactClientRequestIO):
     response: ClientResponse
 
     def __init__(self, response: ClientResponse) -> None:
         self.response = response
 
-    async def receive(self) -> bytes:
+    async def read(self) -> bytes:
         return await self.response.read()
 
     async def extra(self, signature):
-        if signature is HttpResponseExtra:
-            return HttpResponseExtra(
+        if signature is HttpResponse:
+            return HttpResponse(
                 self.response.status,
                 dict(self.response.headers),
                 {k: str(v) for k, v in self.response.cookies.items()},
+                self.response.url,
             )
+
+
+class ClientWebsocketIO(AbstractWebsocketIO):
+    connection: ClientWebSocketResponse
+
+    def __init__(self, connection: ClientWebSocketResponse) -> None:
+        self.connection = connection
+
+    async def extra(self, signature):
+        if signature is websocket.close:
+            if not self.connection.closed:
+                await self.connection.close()
+        elif signature is HttpResponse:
+            return HttpResponse(
+                self.connection._response.status,
+                dict(self.connection._response.request_info.headers),
+                dict(self.connection._response.request_info.url.query),
+                self.connection._response.request_info.url,
+            )
+
+    async def receive(self) -> Union[bytes, str]:
+        msg = await self.connection.receive()
+        if msg.type in {WSMsgType.TEXT, WSMsgType.BINARY}:
+            return msg.data
+        # 错误处理
+        if msg.type == WSMsgType.CLOSED:
+            raise ConnectionClosed("websocket closed")
+        elif msg.type == WSMsgType.ERROR:
+            raise msg.data
+        else:
+            raise TypeError(f"unexpected websocket message type: {msg.type}")
+
+    async def send(self, data: "str | bytes | Any"):
+        if isinstance(data, str):
+            await self.connection.send_str(data)
+        elif isinstance(data, bytes):
+            await self.connection.send_bytes(data)
+        else:
+            await self.connection.send_json(data)
+
+    @property
+    def closed(self):
+        return self.connection.closed
+
+
+T = TypeVar("T", ClientResponse, ClientWebSocketResponse)
+
+
+class ClientConnectionRider(TransportRider[str, Any], Generic[T]):
+    def __init__(self, response: T):
+        self.response = response
+        self.connections = {}
+        self.connections["default"] = response
+
+    @overload
+    def io(self: "ClientConnectionRider[ClientResponse]") -> ClientRequestIO:
+        ...
+
+    @overload
+    def io(self: "ClientConnectionRider[ClientWebSocketResponse]") -> ClientWebsocketIO:
+        ...
+
+    def io(self, id=None) -> ...:
+        if id:
+            raise TypeError("this rider has just one connection")
+        if isinstance(self.response, ClientWebSocketResponse):
+            return ClientWebsocketIO(self.response)
+        elif isinstance(self.response, ClientResponse):
+            return ClientRequestIO(self.response)
+        else:
+            raise TypeError("this response is not a ClientResponse or ClientWebSocketResponse")
+
+    def use(self, transport: Transport):
+        # 因为我不能直接给你就全部接管 receive data, 所以.
+        # 不过我可以提供选择.
+        # TODO: 中间件, 自动 receive 并触发 websocket.data_received 的 Transport Callbacks.
+        raise NotImplementedError
 
 
 class AiohttpClientInterface(ExportInterface["AiohttpService"]):
@@ -50,7 +133,7 @@ class AiohttpClientInterface(ExportInterface["AiohttpService"]):
         headers: Optional[dict] = None,
         cookies: Optional[dict] = None,
         timeout: Optional[float] = None,
-    ) -> AiohttpClientTransportInterface:
+    ):
         response = await self.service.session.request(
             method,
             url,
@@ -60,7 +143,11 @@ class AiohttpClientInterface(ExportInterface["AiohttpService"]):
             cookies=cookies,
             timeout=timeout,
         ).__aenter__()
-        return AiohttpClientTransportInterface(response)
+        return ClientConnectionRider(response)
+
+    async def websocket(self, url: str, **kwargs):
+        connection = await self.service.session.ws_connect(url, **kwargs).__aenter__()
+        return ClientConnectionRider(connection)
 
 
 class AiohttpService(Service):

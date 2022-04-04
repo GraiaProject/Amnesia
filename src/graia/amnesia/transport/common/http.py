@@ -1,9 +1,11 @@
+import contextlib
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Coroutine,
     Dict,
     Final,
     List,
@@ -16,6 +18,7 @@ from typing import (
     overload,
 )
 
+import yarl
 from typing_extensions import NotRequired, Unpack
 
 from graia.amnesia.transport.interface import (
@@ -31,7 +34,7 @@ from graia.amnesia.transport.signature import TransportSignature
 class HttpRequest(ExtraContent):
     headers: Dict[str, str]
     query_params: Dict[str, str]
-    url: str
+    url: yarl.URL
     host: str
     client_ip: str
     client_port: int
@@ -39,16 +42,17 @@ class HttpRequest(ExtraContent):
 
 
 @dataclass
-class HttpResponseExtra(ExtraContent):
+class HttpResponse(ExtraContent):
     status: int
     headers: Dict[str, str]
     cookies: Dict[str, str]
+    uri: yarl.URL
 
 
-HttpResponse = Union[Tuple[Any, Unpack[Tuple[Dict[str, Any], ...]]], Any]
+T_HttpResponse = Union[Tuple[Any, Unpack[Tuple[Dict[str, Any], ...]]], Any]
 
 
-class HttpServerRequestInterface(ReadonlyIO[bytes]):
+class AbstractServerRequestIO(ReadonlyIO[bytes]):
     @abstractmethod
     async def read(self) -> bytes:
         raise NotImplementedError
@@ -66,7 +70,7 @@ class HttpServerRequestInterface(ReadonlyIO[bytes]):
         return req.cookies
 
 
-class HttpClientResponseInterface(ReadonlyIO[bytes]):
+class AbstactClientRequestIO(ReadonlyIO[bytes]):
     @abstractmethod
     async def read(self) -> bytes:
         raise NotImplementedError
@@ -76,30 +80,53 @@ class HttpClientResponseInterface(ReadonlyIO[bytes]):
         raise NotImplementedError
 
     async def headers(self) -> Dict[str, str]:
-        req = await self.extra(HttpRequest)  # type: HttpRequest
+        req = await self.extra(HttpResponse)  # type: HttpResponse
         return req.headers
 
     async def cookies(self) -> Dict[str, str]:
-        req = await self.extra(HttpRequest)  # type: HttpRequest
+        req = await self.extra(HttpResponse)  # type: HttpResponse
         return req.cookies
 
 
-class WebsocketInterface(PacketIO[bytes]):
+class AbstractWebsocketIO(PacketIO[Union[str, bytes]]):
     @abstractmethod
-    async def receive(self) -> bytes:
+    async def receive(self) -> Union[str, bytes]:
         raise NotImplementedError
 
+    @overload
     @abstractmethod
     async def send(self, data: bytes):
+        ...
+
+    @overload
+    @abstractmethod
+    async def send(self, data: str):
+        ...
+
+    @overload
+    @abstractmethod
+    async def send(self, data: Any):
+        ...
+
+    @abstractmethod
+    async def send(self, data: ...):
         raise NotImplementedError
 
     @abstractmethod
     async def extra(self, signature: Any):
         raise NotImplementedError
+
+    async def accept(self):
+        await self.extra(websocket.accept)
 
     async def close(self):
         if not self.closed:
             await self.extra(websocket.close)
+
+    async def packets(self):
+        with contextlib.suppress():
+            while not self.closed:
+                yield await self.receive()
 
 
 def status(code: int):
@@ -134,25 +161,29 @@ class response:
 
 class http:
     @dataclass
-    class Endpoint(
+    class endpoint(
         TransportSignature[
             Callable[
-                [HttpServerRequestInterface],
-                HttpResponse,
+                [AbstractServerRequestIO],
+                Coroutine[None, None, T_HttpResponse],
             ]
         ]
     ):
         path: str
         method: List[Literal["GET", "POST", "PUT", "DELETE"]] = field(default_factory=lambda: ["GET"])  # type: ignore
 
-    @dataclass
-    class WsEndpoint(
-        Endpoint,
-        TransportSignature[Callable[[WebsocketInterface], None]],
-    ):
-        method: Final[str] = "WS"
-
 
 class websocket:
     accept = TransportSignature[None]()
     close = TransportSignature[None]()
+
+    connected = TransportSignature[Callable[[AbstractWebsocketIO], Coroutine[None, None, Any]]]()
+    data_received = TransportSignature[Callable[[AbstractWebsocketIO], Coroutine[None, None, Any]]]()
+    closed = TransportSignature[Callable[[AbstractWebsocketIO], Coroutine[None, None, Any]]]()
+
+    @dataclass
+    class endpoint(
+        http.endpoint,
+        TransportSignature[Callable[[AbstractWebsocketIO], None]],
+    ):
+        method: Final[str] = "WS"

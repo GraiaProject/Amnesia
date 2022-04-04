@@ -133,9 +133,6 @@ class ClientConnectionRider(TransportRider[str, Any], Generic[T]):
                 await io.close()
 
     def use(self, transport: Transport):
-        # 因为我不能直接给你就全部接管 receive data, 所以.
-        # 不过我可以提供选择.
-        # TODO: 中间件, 自动 receive 并触发 websocket.data_received 的 Transport Callbacks.
         if not isinstance(self.response, ClientWebSocketResponse):
             raise TypeError("this response is not a packet io.")
         self.autoreceive = True

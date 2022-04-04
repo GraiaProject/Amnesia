@@ -81,9 +81,6 @@ class MemcacheService(Service):
             return Memcache(self.cache, self.expire)
         raise ValueError(f"unsupported interface type {interface_type}")
 
-    def get_status(self, _):
-        raise NotImplementedError
-
     @property
     def launch_component(self) -> LaunchComponent:
         return LaunchComponent("cache.client", set(), mainline=self.launch_mainline)

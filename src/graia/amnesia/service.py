@@ -4,7 +4,6 @@ from typing import Any, Callable, ClassVar, Dict, Set, Tuple, Type, TypeVar, Uni
 
 from graia.amnesia.interface import ExportInterface
 from graia.amnesia.launch import LaunchComponent
-from graia.amnesia.status import Status
 
 TInterface = TypeVar("TInterface", bound=ExportInterface)
 TCallback = TypeVar("TCallback", bound=Callable)
@@ -25,17 +24,12 @@ class Service(metaclass=ABCMeta):
         ]
     ]
 
-    status: Dict[Any, Status]
-
     def __init__(self) -> None:
-        self.status = {}
+        ...
 
     @abstractmethod
     def get_interface(self, interface_type: Type[TInterface]) -> TInterface:
         pass
-
-    def get_status(self, target: Any) -> Status:
-        raise NotImplementedError
 
     @property
     @abstractmethod
@@ -45,13 +39,7 @@ class Service(metaclass=ABCMeta):
     available_waiters: Dict[Any, asyncio.Event]
 
     async def wait_for_available(self, target: Any):
-        status = self.get_status(target)
-        if status.available:
-            return
-        try:
-            await self.available_waiters.setdefault(target, asyncio.Event()).wait()
-        finally:
-            self.available_waiters.pop(target, None)
+        ...
 
     def trig_available_waiters(self, target: Any):
         if target in self.available_waiters:

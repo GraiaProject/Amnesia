@@ -146,7 +146,7 @@ class StarletteWebsocketIO(AbstractWebsocketIO):
         return self.websocket.client_state == WebSocketState.DISCONNECTED
 
 
-class StarletteRouter(ExportInterface, TransportRider[str, object]):  # TODO: generic type change
+class StarletteRouter(ExportInterface, TransportRider[str, Union[StarletteRequestIO, StarletteWebsocketIO]]):
     def __init__(self, starlette: Starlette):
         self.starlette = starlette
         self.connections = WeakValueDictionary()  # type: ignore

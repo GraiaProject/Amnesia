@@ -34,15 +34,6 @@ class UvicornService(Service):
     def get_interface(self, interface_type):
         pass
 
-    def get_status(self, entity):
-        raise NotImplementedError
-
-    def set_status(self, entity, available: bool, description: str):
-        raise NotImplementedError
-
-    def set_current_status(self, available: bool, description: str):
-        raise NotImplementedError
-
     async def launch_prepare(self, manager: LaunchManager):
         asgi_handler = manager.get_interface(ASGIHandlerProvider).get_asgi_handler()
         self.server = WithoutSigHandlerServer(Config(asgi_handler, host=self.host, port=self.port))

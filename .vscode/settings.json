@@ -3,7 +3,9 @@
     "cSpell.words": [
         "Aiohttp",
         "ASGI",
+        "levelno",
         "Starlette",
+        "Uvicorn",
         "yarl"
     ]
 }

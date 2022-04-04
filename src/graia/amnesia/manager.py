@@ -3,6 +3,7 @@ from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Type
 
 from loguru import logger
 from rich.console import Console
+from rich.logging import RichHandler
 from rich.status import Status as RichStatus
 
 from graia.amnesia.interface import ExportInterface
@@ -83,6 +84,16 @@ class LaunchManager:
         return self._service_interfaces[interface_type].get_interface(interface_type)
 
     async def launch(self):
+        logger.configure(
+            handlers=[
+                {
+                    "sink": RichHandler(console=self.rich_console, markup=True),
+                    "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | "
+                    "<cyan>{name}</cyan>: <cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+                }
+            ]
+        )
+
         for service in self.services:
             logger.info(f"using service: {service.__class__.__name__}")
 

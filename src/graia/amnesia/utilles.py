@@ -1,6 +1,21 @@
+import logging
 import random
 import string
-from typing import Callable, Dict, Hashable, List, Set, Tuple, Type, TypeVar, Union
+from types import FrameType
+from typing import (
+    Callable,
+    Dict,
+    Hashable,
+    List,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+)
+
+from loguru import logger
 
 T = TypeVar("T")
 H = TypeVar("H", bound=Hashable)
@@ -99,9 +114,24 @@ class Registrar(Dict):
         return decorator
 
 
-# use string and random to generate a length=12 random id
-# and, remember the random.choices
-
-
 def random_id(length=12):
     return "".join(random.choices(string.ascii_letters + string.digits, k=length))
+
+
+class LoguruHandler(logging.Handler):
+    def emit(self, record: logging.LogRecord) -> None:
+        # print("?")
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = str(record.levelno)
+
+        frame, depth = logging.currentframe(), 2
+        while frame.f_code.co_filename == logging.__file__:
+            frame = cast(FrameType, frame.f_back)
+            depth += 1
+
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level,
+            record.getMessage(),
+        )

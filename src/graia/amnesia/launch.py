@@ -37,10 +37,8 @@ def resolve_requirements(
     resolved = set()
     result = []
     while components:
-        layer = set()
-        for index, component in enumerate(components):
-            if component.required.issubset(resolved):
-                layer.add(component)
+        layer = {component for component in components if component.required.issubset(resolved)}
+
         if layer:
             components -= layer
             resolved.update(component.id for component in layer)

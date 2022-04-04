@@ -41,11 +41,11 @@ class Memcache(ExportInterface):
         heappush(self.expire, (expire_time, value))
 
     async def delete(self, key: str, strict: bool = False) -> None:
-        if key not in self.cache:
-            if strict:
-                raise KeyError(key)
-        else:
+        if key in self.cache:
             del self.cache[key]
+
+        elif strict:
+            raise KeyError(key)
 
     async def clear(self) -> None:
         self.cache.clear()
@@ -72,8 +72,8 @@ class MemcacheService(Service):
         expire: Optional[List[Tuple[float, str]]] = None,
     ):
         self.interval = interval
-        self.cache = cache if cache else {}
-        self.expire = expire if expire else []
+        self.cache = cache or {}
+        self.expire = expire or []
         super().__init__()
 
     def get_interface(self, interface_type: Type[Memcache]) -> Memcache:

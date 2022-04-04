@@ -1,11 +1,19 @@
 import asyncio
+import logging
 
+from loguru import logger
 from uvicorn import Config, Server
 
 from graia.amnesia.builtins.common import ASGIHandlerProvider
 from graia.amnesia.launch import LaunchComponent
 from graia.amnesia.manager import LaunchManager
 from graia.amnesia.service import Service
+from graia.amnesia.utilles import LoguruHandler
+
+
+class WithoutSigHandlerServer(Server):
+    def install_signal_handlers(self) -> None:
+        return
 
 
 class UvicornService(Service):
@@ -16,9 +24,12 @@ class UvicornService(Service):
     host: str
     port: int
 
-    def __init__(self, host: str, port: int):
+    server_sigexit: asyncio.Event
+
+    def __init__(self, host: str = "127.0.0.1", port: int = 8000):
         self.host = host
         self.port = port
+        self.server_sigexit = asyncio.Event()
 
     def get_interface(self, interface_type):
         pass
@@ -34,17 +45,27 @@ class UvicornService(Service):
 
     async def launch_prepare(self, manager: LaunchManager):
         asgi_handler = manager.get_interface(ASGIHandlerProvider).get_asgi_handler()
-        self.server = Server(Config(asgi_handler, host=self.host, port=self.port))
+        self.server = WithoutSigHandlerServer(Config(asgi_handler, host=self.host, port=self.port))
         # TODO: 使用户拥有更多的对 Config 的配置能力.
+        PATCHES = "uvicorn.error", "uvicorn.asgi", "uvicorn.access", ""
+        level = logging.getLevelName(20)  # default level for uvicorn
+        logging.basicConfig(handlers=[LoguruHandler()], level=level)
+        for name in PATCHES:
+            target = logging.getLogger(name)
+            target.handlers = [LoguruHandler(level=level)]
+            target.propagate = False
 
-    async def launch_mainline(self, manager: "LaunchManager"):
+    async def launch_mainline(self, manager: LaunchManager):
         await self.server.serve()
-        manager.sigexit.set()
-        if manager.maintask:
-            manager.maintask.cancel()
-        for task in asyncio.all_tasks():
-            if task.get_name() == "amnesia-launch":
-                task.cancel()
+        self.server_sigexit.set()
+
+    async def launch_cleanup(self, _):
+        logger.warning("try to shutdown uvicorn server...")
+        self.server.should_exit = True
+        await asyncio.wait([self.server_sigexit.wait(), asyncio.sleep(10)], return_when=asyncio.FIRST_COMPLETED)
+        if not self.server_sigexit.is_set():
+            logger.warning("timeout, force exit uvicorn server...")
+            self.server.force_exit = True
 
     @property
     def launch_component(self) -> LaunchComponent:
@@ -53,4 +74,5 @@ class UvicornService(Service):
             {"http.universal_server"},
             self.launch_mainline,
             self.launch_prepare,
+            self.launch_cleanup,
         )

@@ -21,24 +21,21 @@ from typing import (
 import yarl
 from typing_extensions import NotRequired, Unpack
 
-from graia.amnesia.transport.interface import (
-    ExtraContent,
-    PacketIO,
-    ReadonlyIO,
-    TransportIO,
-)
+from graia.amnesia.transport.exceptions import ConnectionClosed
+from graia.amnesia.transport.interface import ExtraContent, PacketIO, ReadonlyIO
 from graia.amnesia.transport.signature import TransportSignature
 
 
 @dataclass
 class HttpRequest(ExtraContent):
     headers: Dict[str, str]
+    cookies: Dict[str, str]
     query_params: Dict[str, str]
     url: yarl.URL
     host: str
+    method: 'Literal["GET", "POST", "PUT", "DELETE"] | str'
     client_ip: str
     client_port: int
-    cookies: Dict[str, str]
 
 
 @dataclass
@@ -127,6 +124,8 @@ class AbstractWebsocketIO(PacketIO[Union[str, bytes]]):
         try:
             while not self.closed:
                 yield await self.receive()
+        except ConnectionClosed:
+            raise
         except:
             pass
 
@@ -172,7 +171,7 @@ class http:
         ]
     ):
         path: str
-        method: List[Literal["GET", "POST", "PUT", "DELETE"]] = field(default_factory=lambda: ["GET"])  # type: ignore
+        methods: List[Literal["GET", "POST", "PUT", "DELETE"]] = field(default_factory=lambda: ["GET"])  # type: ignore
 
 
 class websocket:

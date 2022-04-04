@@ -1,3 +1,5 @@
+import random
+import string
 from typing import Callable, Dict, Hashable, List, Set, Tuple, Type, TypeVar, Union
 
 T = TypeVar("T")
@@ -95,3 +97,11 @@ class Registrar(Dict):
             return cls
 
         return decorator
+
+
+# use string and random to generate a length=12 random id
+# and, remember the random.choices
+
+
+def random_id(length=12):
+    return "".join(random.choices(string.ascii_letters + string.digits, k=length))

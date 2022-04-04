@@ -35,3 +35,11 @@ class Transport:
 
     def has_callback(self, signature: TransportSignature[T]) -> bool:
         return signature in self.callbacks
+
+    def iter_handlers(self):
+        for signature, unbound in self.handlers.items():
+            yield signature, partial(unbound, self)
+
+    def iter_callbacks(self):
+        for signature, unbound_callbacks in self.callbacks.items():
+            yield signature, [partial(callback, self) for callback in unbound_callbacks]

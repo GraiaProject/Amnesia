@@ -124,9 +124,11 @@ class AbstractWebsocketIO(PacketIO[Union[str, bytes]]):
             await self.extra(websocket.close)
 
     async def packets(self):
-        with contextlib.suppress():
+        try:
             while not self.closed:
                 yield await self.receive()
+        except:
+            pass
 
 
 def status(code: int):
@@ -177,9 +179,10 @@ class websocket:
     accept = TransportSignature[None]()
     close = TransportSignature[None]()
 
-    connected = TransportSignature[Callable[[AbstractWebsocketIO], Coroutine[None, None, Any]]]()
-    data_received = TransportSignature[Callable[[AbstractWebsocketIO], Coroutine[None, None, Any]]]()
-    closed = TransportSignature[Callable[[AbstractWebsocketIO], Coroutine[None, None, Any]]]()
+    class event:
+        connect = TransportSignature[Callable[[AbstractWebsocketIO], Coroutine[None, None, Any]]]()
+        receive = TransportSignature[Callable[[AbstractWebsocketIO, Union[bytes, str]], Coroutine[None, None, Any]]]()
+        close = TransportSignature[Callable[[AbstractWebsocketIO], Coroutine[None, None, Any]]]()
 
     @dataclass
     class endpoint(

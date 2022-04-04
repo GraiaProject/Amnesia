@@ -1,7 +1,7 @@
 import asyncio
 import weakref
-from functools import partial
-from typing import Any, Generic, Optional, Type, TypeVar, Union, overload
+from functools import partial, reduce
+from typing import Any, Generic, Optional, Type, TypeVar, Union, cast, overload
 
 from aiohttp import ClientResponse, ClientSession, ClientWebSocketResponse, WSMsgType
 
@@ -64,7 +64,7 @@ class ClientWebsocketIO(AbstractWebsocketIO):
         if msg.type in {WSMsgType.TEXT, WSMsgType.BINARY}:
             return msg.data
         # 错误处理
-        if msg.type == WSMsgType.CLOSED:
+        if msg.type in {WSMsgType.CLOSE, WSMsgType.CLOSED}:
             raise ConnectionClosed("websocket closed")
         elif msg.type == WSMsgType.ERROR:
             raise msg.data
@@ -89,9 +89,12 @@ T = TypeVar("T", ClientResponse, ClientWebSocketResponse)
 
 class ClientConnectionRider(TransportRider[str, Any], Generic[T]):
     def __init__(self, response: T):
+        self.transports = []
         self.response = response
         self.connections = {}
         self.connections["default"] = response
+        self.autoreceive = False
+        self.task = None
 
     @overload
     def io(self: "ClientConnectionRider[ClientResponse]") -> ClientRequestIO:
@@ -104,6 +107,8 @@ class ClientConnectionRider(TransportRider[str, Any], Generic[T]):
     def io(self, id=None) -> ...:
         if id:
             raise TypeError("this rider has just one connection")
+        if self.autoreceive:
+            raise TypeError("this rider has been taken over by auto receive, use .use(transport) instead.")
         if isinstance(self.response, ClientWebSocketResponse):
             return ClientWebsocketIO(self.response)
         elif isinstance(self.response, ClientResponse):
@@ -111,11 +116,34 @@ class ClientConnectionRider(TransportRider[str, Any], Generic[T]):
         else:
             raise TypeError("this response is not a ClientResponse or ClientWebSocketResponse")
 
+    async def trigger_callbacks(self, event, *args, **kwargs):
+        callbacks = [i.get_callbacks(event) for i in self.transports if i.has_callback(event)]
+        if callbacks:
+            callbacks = reduce(lambda a, b: a + b, callbacks)
+            await asyncio.wait([i(*args, **kwargs) for i in callbacks])
+
+    async def connection_manage(self: "ClientConnectionRider[ClientWebSocketResponse]"):
+        io = ClientWebsocketIO(self.response)
+        await self.trigger_callbacks(websocket.event.connect, io)
+        try:
+            async for data in io.packets():
+                await self.trigger_callbacks(websocket.event.receive, io, data)
+        finally:
+            await self.trigger_callbacks(websocket.event.close, io)
+            if not io.closed:
+                await io.close()
+
     def use(self, transport: Transport):
         # 因为我不能直接给你就全部接管 receive data, 所以.
         # 不过我可以提供选择.
         # TODO: 中间件, 自动 receive 并触发 websocket.data_received 的 Transport Callbacks.
-        raise NotImplementedError
+        if not isinstance(self.response, ClientWebSocketResponse):
+            raise TypeError("this response is not a packet io.")
+        self.autoreceive = True
+        self.transports.append(transport)
+        if not self.task:
+            self.task = asyncio.create_task(self.connection_manage())  # type: ignore
+        return self.task
 
 
 class AiohttpClientInterface(ExportInterface["AiohttpService"]):

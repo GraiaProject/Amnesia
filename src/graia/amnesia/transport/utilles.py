@@ -16,7 +16,7 @@ class HandlerRegistrar(Dict[TransportSignature[T_TransportHandler], T_TransportH
 
         return decorator
 
-    def apply(self, transport_class: Type[Transport]):
+    def apply(self, transport_class: Type["Transport"]):
         transport_class.handlers.update(self)
         return transport_class
 
@@ -29,6 +29,6 @@ class CallbackRegistrar(Dict[TransportSignature[T_TransportHandler], List[T_Tran
 
         return decorator
 
-    def apply(self, transport_class: Type[Transport]):
+    def apply(self, transport_class: Type["Transport"]):
         transport_class.callbacks.update(self)
         return transport_class

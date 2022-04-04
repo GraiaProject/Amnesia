@@ -3,7 +3,7 @@ from typing import Callable, Dict, List, Optional, TypeVar, cast
 
 from graia.amnesia.transport.signature import TransportSignature
 
-T = TypeVar("T", contravariant=True, bound=Callable)
+T = TypeVar("T", bound=Callable)
 
 
 class Transport:
@@ -18,14 +18,20 @@ class Transport:
                 cls.handlers.update(base.handlers)
                 cls.callbacks.update(base.callbacks)
 
-    def get_handler(self, signature: TransportSignature[T]) -> Optional[T]:
+    def get_handler(self, signature: TransportSignature[T]) -> T:
         handler = cast(Optional[T], self.handlers.get(signature))
-        if handler:
-            handler = partial(handler, self)
-        return handler  # type: ignore
+        if not handler:
+            raise TypeError(f"{self.__class__.__name__} has no handler for {signature}")
+        return partial(handler, self)  # type: ignore
 
-    def get_callbacks(self, signature: TransportSignature[T]) -> Optional[List[T]]:
+    def get_callbacks(self, signature: TransportSignature[T]) -> List[T]:
         callbacks = cast(Optional[List[T]], self.callbacks.get(signature))
-        if callbacks:
-            callbacks = [partial(callback, self) for callback in callbacks]
-        return callbacks  # type: ignore
+        if not callbacks:
+            raise TypeError(f"{self.__class__.__name__} has no callback for {signature}")
+        return [partial(callback, self) for callback in callbacks]  # type: ignore
+
+    def has_handler(self, signature: TransportSignature[T]) -> bool:
+        return signature in self.handlers
+
+    def has_callback(self, signature: TransportSignature[T]) -> bool:
+        return signature in self.callbacks

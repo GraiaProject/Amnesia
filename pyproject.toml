@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "graia-amnesia"
-version = "0.0.1"
+version = "0.0.2"
 description = "a collection of shared components for graia"
 license = "MIT"
 authors = ["GreyElaina <GreyElaina@outlook.com>"]

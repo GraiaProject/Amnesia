@@ -1,4 +1,4 @@
 from graia.amnesia.transport.signature import TransportSignature
 
-accept = TransportSignature[None]()
-close = TransportSignature[None]()
+WSConnectionAccept = TransportSignature[None]()
+WSConnectionClose = TransportSignature[None]()

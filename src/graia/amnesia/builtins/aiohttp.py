@@ -11,16 +11,22 @@ from graia.amnesia.service import Service
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http.extra import HttpResponse
 from graia.amnesia.transport.common.http.io import AbstactClientRequestIO
-from graia.amnesia.transport.common.websocket.event import close as WebsocketCloseEvent
 from graia.amnesia.transport.common.websocket.event import (
-    connect as WebsocketConnectEvent,
+    WebsocketCloseEvent as WebsocketCloseEvent,
 )
 from graia.amnesia.transport.common.websocket.event import (
-    receive as WebsocketReceivedEvent,
+    WebsocketConnectEvent as WebsocketConnectEvent,
+)
+from graia.amnesia.transport.common.websocket.event import (
+    WebsocketReceivedEvent as WebsocketReceivedEvent,
 )
 from graia.amnesia.transport.common.websocket.io import AbstractWebsocketIO
-from graia.amnesia.transport.common.websocket.operator import accept as WebsocketAccept
-from graia.amnesia.transport.common.websocket.operator import close as WebsocketClose
+from graia.amnesia.transport.common.websocket.operator import (
+    WSConnectionAccept as WebsocketAccept,
+)
+from graia.amnesia.transport.common.websocket.operator import (
+    WSConnectionClose as WebsocketClose,
+)
 from graia.amnesia.transport.exceptions import ConnectionClosed
 from graia.amnesia.transport.interface import TransportIO
 from graia.amnesia.transport.rider import TransportRider

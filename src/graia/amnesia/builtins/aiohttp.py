@@ -9,12 +9,18 @@ from graia.amnesia.interface import ExportInterface
 from graia.amnesia.launch import LaunchComponent
 from graia.amnesia.service import Service
 from graia.amnesia.transport import Transport
-from graia.amnesia.transport.common.http import (
-    AbstactClientRequestIO,
-    AbstractWebsocketIO,
-    HttpResponse,
-    websocket,
+from graia.amnesia.transport.common.http.extra import HttpResponse
+from graia.amnesia.transport.common.http.io import AbstactClientRequestIO
+from graia.amnesia.transport.common.websocket.event import close as WebsocketCloseEvent
+from graia.amnesia.transport.common.websocket.event import (
+    connect as WebsocketConnectEvent,
 )
+from graia.amnesia.transport.common.websocket.event import (
+    receive as WebsocketReceivedEvent,
+)
+from graia.amnesia.transport.common.websocket.io import AbstractWebsocketIO
+from graia.amnesia.transport.common.websocket.operator import accept as WebsocketAccept
+from graia.amnesia.transport.common.websocket.operator import close as WebsocketClose
 from graia.amnesia.transport.exceptions import ConnectionClosed
 from graia.amnesia.transport.interface import TransportIO
 from graia.amnesia.transport.rider import TransportRider
@@ -47,7 +53,7 @@ class ClientWebsocketIO(AbstractWebsocketIO):
         self.connection = connection
 
     async def extra(self, signature):
-        if signature is websocket.close:
+        if signature is WebsocketClose:
             if not self.connection.closed:
                 await self.connection.close()
         elif signature is HttpResponse:
@@ -123,12 +129,12 @@ class ClientConnectionRider(TransportRider[str, Any], Generic[T]):
 
     async def connection_manage(self: "ClientConnectionRider[ClientWebSocketResponse]"):
         io = ClientWebsocketIO(self.response)
-        await self.trigger_callbacks(websocket.event.connect, io)
+        await self.trigger_callbacks(WebsocketConnectEvent, io)
         try:
             async for data in io.packets():
-                await self.trigger_callbacks(websocket.event.receive, io, data)
+                await self.trigger_callbacks(WebsocketReceivedEvent, io, data)
         finally:
-            await self.trigger_callbacks(websocket.event.close, io)
+            await self.trigger_callbacks(WebsocketCloseEvent, io)
             if not io.closed:
                 await io.close()
 

@@ -15,13 +15,20 @@ from graia.amnesia.interface import ExportInterface
 from graia.amnesia.launch import LaunchComponent
 from graia.amnesia.service import Service
 from graia.amnesia.transport import Transport
-from graia.amnesia.transport.common.http import (
-    AbstractServerRequestIO,
-    AbstractWebsocketIO,
-    HttpRequest,
-    http,
-    websocket,
+from graia.amnesia.transport.common.http import AbstractServerRequestIO
+from graia.amnesia.transport.common.http import endpoint as HttpEndpoint
+from graia.amnesia.transport.common.http.extra import HttpRequest
+from graia.amnesia.transport.common.websocket import AbstractWebsocketIO
+from graia.amnesia.transport.common.websocket import endpoint as WebsocketEndpoint
+from graia.amnesia.transport.common.websocket.event import close as WebsocketCloseEvent
+from graia.amnesia.transport.common.websocket.event import (
+    connect as WebsocketConnectEvent,
 )
+from graia.amnesia.transport.common.websocket.event import (
+    receive as WebsocketReceivedEvent,
+)
+from graia.amnesia.transport.common.websocket.operator import accept as WebsocketAccept
+from graia.amnesia.transport.common.websocket.operator import close as WebsocketClose
 from graia.amnesia.transport.exceptions import ConnectionClosed
 from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.utilles import random_id
@@ -127,9 +134,9 @@ class StarletteWebsocketIO(AbstractWebsocketIO):
                 self.websocket.client.host if self.websocket.client else "0.0.0.0",
                 self.websocket.client.port if self.websocket.client else 0,
             )
-        elif signature is websocket.accept:
+        elif signature is WebsocketAccept:
             await self.websocket.accept()
-        elif signature is websocket.close:
+        elif signature is WebsocketClose:
             await self.websocket.close()
 
     async def headers(self):
@@ -202,18 +209,18 @@ class StarletteRouter(ExportInterface, TransportRider[str, Union[StarletteReques
         io = StarletteWebsocketIO(ws)
         conn_id = random_id()
         self.connections[conn_id] = io
-        await self.trigger_callbacks(websocket.event.connect, io)
+        await self.trigger_callbacks(WebsocketConnectEvent, io)
         async for message in io.packets():
-            await self.trigger_callbacks(websocket.event.receive, io, message)
-        await self.trigger_callbacks(websocket.event.close, io)
+            await self.trigger_callbacks(WebsocketReceivedEvent, io, message)
+        await self.trigger_callbacks(WebsocketCloseEvent, io)
 
     def use(self, transport: Transport):
         for signature, handler in transport.iter_handlers():
-            if isinstance(signature, http.endpoint):
+            if isinstance(signature, HttpEndpoint):
                 self.starlette.add_route(
                     signature.path, partial(self.http_request_handler, handler), methods=signature.methods
                 )
-            elif isinstance(signature, websocket.endpoint):
+            elif isinstance(signature, WebsocketEndpoint):
                 self.starlette.add_websocket_route(signature.path, self.websocket_handler)
 
 

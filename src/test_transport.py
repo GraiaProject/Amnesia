@@ -8,7 +8,7 @@ from graia.amnesia.builtins.starlette import StarletteService
 from graia.amnesia.builtins.uvicorn import UvicornService
 from graia.amnesia.manager import LaunchManager
 from graia.amnesia.transport import Transport
-from graia.amnesia.transport.common.http import (
+from graia.amnesia.transport.common.http.old import (
     AbstractWebsocketIO,
     HttpResponse,
     websocket,

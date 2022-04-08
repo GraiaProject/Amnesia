@@ -5,9 +5,9 @@ from typing import Any, Generic, Optional, Type, TypeVar, Union, cast, overload
 
 from aiohttp import ClientResponse, ClientSession, ClientWebSocketResponse, WSMsgType
 
-from graia.amnesia.interface import ExportInterface
-from graia.amnesia.launch import LaunchComponent
-from graia.amnesia.service import Service
+from graia.amnesia.launch.component import LaunchComponent
+from graia.amnesia.launch.interface import ExportInterface
+from graia.amnesia.launch.service import Service
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http.extra import HttpResponse
 from graia.amnesia.transport.common.http.io import AbstactClientRequestIO

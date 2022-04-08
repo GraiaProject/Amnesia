@@ -6,7 +6,7 @@ from loguru import logger
 from graia.amnesia.builtins.aiohttp import AiohttpClientInterface, AiohttpService
 from graia.amnesia.builtins.starlette import StarletteService
 from graia.amnesia.builtins.uvicorn import UvicornService
-from graia.amnesia.manager import LaunchManager
+from graia.amnesia.launch.manager import LaunchManager
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.utilles import CallbackRegistrar, HandlerRegistrar
 

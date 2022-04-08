@@ -11,9 +11,9 @@ from starlette.responses import FileResponse, JSONResponse, PlainTextResponse, R
 from starlette.websockets import WebSocket, WebSocketState
 
 from graia.amnesia.builtins.common import ASGIHandlerProvider
-from graia.amnesia.interface import ExportInterface
-from graia.amnesia.launch import LaunchComponent
-from graia.amnesia.service import Service
+from graia.amnesia.launch.component import LaunchComponent
+from graia.amnesia.launch.interface import ExportInterface
+from graia.amnesia.launch.service import Service
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http import AbstractServerRequestIO
 from graia.amnesia.transport.common.http import endpoint as HttpEndpoint

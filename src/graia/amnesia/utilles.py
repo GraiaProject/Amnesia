@@ -120,7 +120,6 @@ def random_id(length=12):
 
 class LoguruHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
-        # print("?")
         try:
             level = logger.level(record.levelname).name
         except ValueError:

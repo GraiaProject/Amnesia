@@ -4,10 +4,10 @@ from heapq import heappop, heappush
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Type
 
-from graia.amnesia.interface import ExportInterface
-from graia.amnesia.launch import LaunchComponent
-from graia.amnesia.manager import LaunchManager
-from graia.amnesia.service import Service
+from graia.amnesia.launch.component import LaunchComponent
+from graia.amnesia.launch.interface import ExportInterface
+from graia.amnesia.launch.manager import LaunchManager
+from graia.amnesia.launch.service import Service
 
 
 class Memcache(ExportInterface):

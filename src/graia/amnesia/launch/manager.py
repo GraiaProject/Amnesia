@@ -6,9 +6,9 @@ from rich.console import Console
 from rich.logging import RichHandler
 from rich.status import Status as RichStatus
 
-from graia.amnesia.interface import ExportInterface
-from graia.amnesia.launch import LaunchComponent, resolve_requirements
-from graia.amnesia.service import Service, TInterface
+from graia.amnesia.launch.component import LaunchComponent, resolve_requirements
+from graia.amnesia.launch.interface import ExportInterface
+from graia.amnesia.launch.service import Service, TInterface
 from graia.amnesia.utilles import priority_strategy
 
 

@@ -120,7 +120,7 @@ class MessageChain:
         Returns:
             MessageChain: 拼接结果
         """
-        return cls(sum([list(i.content) for i in chains], []))
+        return cls(sum((list(i.content) for i in chains), []))
 
     __contains__ = has
 
@@ -147,24 +147,25 @@ class MessageChain:
         if item.start:
             first_slice = result[item.start[0] :]
             if item.start[1] is not None and first_slice:  # text slice
-                if not isinstance(first_slice[0], Text):
-                    if not ignore_text_index:
-                        raise TypeError("the sliced chain does not starts with a Text: {}".format(first_slice[0]))
-                    else:
-                        result = first_slice
-                else:
+                if isinstance(first_slice[0], Text):
                     final_text = first_slice[0].text[item.start[1] :]
                     result = [
                         *([Text(final_text)] if final_text else []),
                         *first_slice[1:],
                     ]
+                elif not ignore_text_index:
+                    raise TypeError(f"the sliced chain does not starts with a Text: {first_slice[0]}")
+
+                else:
+                    result = first_slice
             else:
                 result = first_slice
         if item.stop:
             first_slice = result[: item.stop[0]]
             if item.stop[1] is not None and first_slice:  # text slice
                 if not isinstance(first_slice[-1], Text):
-                    raise TypeError("the sliced chain does not ends with a Text: {}".format(first_slice[-1]))
+                    raise TypeError(f"the sliced chain does not ends with a Text: {first_slice[-1]}")
+
                 final_text = first_slice[-1].text[: item.stop[1]]  # type: ignore
                 result = [
                     *first_slice[:-1],
@@ -192,10 +193,9 @@ class MessageChain:
                 result.append(i)
             else:
                 texts.append(i.text)
-        else:
-            if texts:
-                result.append(Text("".join(texts)))
-                texts.clear()  # 清空缓存
+        if texts:
+            result.append(Text("".join(texts)))
+            texts.clear()  # 清空缓存
         return MessageChain(type(self.content)(result))  # 维持 Mutable
 
     def exclude(self, *types: Type[Element]) -> "MessageChain":
@@ -236,10 +236,9 @@ class MessageChain:
                         tmp.append(Text(split_str))
             else:
                 tmp.append(element)
-        else:
-            if tmp:
-                result.append(MessageChain(tmp))
-                tmp = []
+        if tmp:
+            result.append(MessageChain(tmp))
+            tmp = []
         return result
 
     def __repr__(self) -> str:
@@ -341,10 +340,7 @@ class MessageChain:
             Optional[int]: 元素下标, 若未找到则为 None.
 
         """
-        for i, e in enumerate(self.content):
-            if isinstance(e, element_type):
-                return i
-        return None
+        return next((i for i, e in enumerate(self.content) if isinstance(e, element_type)), None)
 
     def count(self, element: Union[Type[Element], Element]) -> int:
         """

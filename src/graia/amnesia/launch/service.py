@@ -2,8 +2,8 @@ import asyncio
 from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, ClassVar, Dict, Set, Tuple, Type, TypeVar, Union
 
-from graia.amnesia.interface import ExportInterface
-from graia.amnesia.launch import LaunchComponent
+from graia.amnesia.launch.component import LaunchComponent
+from graia.amnesia.launch.interface import ExportInterface
 
 TInterface = TypeVar("TInterface", bound=ExportInterface)
 TCallback = TypeVar("TCallback", bound=Callable)
@@ -35,12 +35,3 @@ class Service(metaclass=ABCMeta):
     @abstractmethod
     def launch_component(self) -> LaunchComponent:
         pass
-
-    available_waiters: Dict[Any, asyncio.Event]
-
-    async def wait_for_available(self, target: Any):
-        ...
-
-    def trig_available_waiters(self, target: Any):
-        if target in self.available_waiters:
-            self.available_waiters[target].set()

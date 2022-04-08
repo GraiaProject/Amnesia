@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, List, Optional, Set
 
 if TYPE_CHECKING:
-    from graia.amnesia.manager import LaunchManager
+    from graia.amnesia.launch.manager import LaunchManager
 
 
 class LaunchComponent:

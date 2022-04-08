@@ -16,10 +16,12 @@ from graia.amnesia.launch.interface import ExportInterface
 from graia.amnesia.launch.service import Service
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http import AbstractServerRequestIO
-from graia.amnesia.transport.common.http import endpoint as HttpEndpoint
+from graia.amnesia.transport.common.http import HttpEndpoint as HttpEndpoint
 from graia.amnesia.transport.common.http.extra import HttpRequest
 from graia.amnesia.transport.common.websocket import AbstractWebsocketIO
-from graia.amnesia.transport.common.websocket import endpoint as WebsocketEndpoint
+from graia.amnesia.transport.common.websocket import (
+    WebsocketEndpoint as WebsocketEndpoint,
+)
 from graia.amnesia.transport.common.websocket.event import (
     WebsocketCloseEvent as WebsocketCloseEvent,
 )
@@ -95,9 +97,11 @@ class StarletteRequestIO(AbstractServerRequestIO):
 
 class StarletteWebsocketIO(AbstractWebsocketIO):
     websocket: WebSocket
+    ready: asyncio.Event
 
     def __init__(self, websocket: WebSocket) -> None:
         self.websocket = websocket
+        self.ready = asyncio.Event()
 
     async def receive(self) -> Union[str, bytes]:
         received = await self.websocket.receive()
@@ -154,9 +158,16 @@ class StarletteWebsocketIO(AbstractWebsocketIO):
     async def close(self):
         await self.websocket.close()
 
+    async def wait_for_ready(self):
+        return await self.ready.wait()
+
+    async def accept(self):
+        self.ready.set()
+        return await super().accept()
+
     @property
     def closed(self):
-        return self.websocket.client_state == WebSocketState.DISCONNECTED
+        return self.websocket.application_state == WebSocketState.DISCONNECTED
 
 
 class StarletteRouter(ExportInterface, TransportRider[str, Union[StarletteRequestIO, StarletteWebsocketIO]]):
@@ -216,22 +227,34 @@ class StarletteRouter(ExportInterface, TransportRider[str, Union[StarletteReques
         conn_id = random_id()
         self.connections[conn_id] = io
         await self.trigger_callbacks(WebsocketConnectEvent, io)
-        async for message in io.packets():
-            await self.trigger_callbacks(WebsocketReceivedEvent, io, message)
-        await self.trigger_callbacks(WebsocketCloseEvent, io)
+        if io.closed:
+            return
+        io.ready.set()
+        try:
+            async for message in io.packets():
+                await self.trigger_callbacks(WebsocketReceivedEvent, io, message)
+        except ConnectionClosed:
+            await self.trigger_callbacks(WebsocketCloseEvent, io)
+
+    def io(self, id: Optional[str] = None):
+        if id is None:
+            raise ValueError("id is required")
+
+        return self.connections.get(id)
 
     def use(self, transport: Transport):
+        self.transports.append(transport)
         for signature, handler in transport.iter_handlers():
-            if isinstance(signature, HttpEndpoint):
+            if isinstance(signature, WebsocketEndpoint):
+                self.starlette.add_websocket_route(signature.path, self.websocket_handler)
+            elif isinstance(signature, HttpEndpoint):
                 self.starlette.add_route(
                     signature.path, partial(self.http_request_handler, handler), methods=signature.methods
                 )
-            elif isinstance(signature, WebsocketEndpoint):
-                self.starlette.add_websocket_route(signature.path, self.websocket_handler)
 
 
 class StarletteService(Service):
-    supported_interface_types = {ASGIHandlerProvider}
+    supported_interface_types = {ASGIHandlerProvider, StarletteRouter}
 
     starlette: Starlette
 
@@ -242,6 +265,8 @@ class StarletteService(Service):
     def get_interface(self, interface_type):
         if issubclass(interface_type, (ASGIHandlerProvider)):
             return StarletteServer(self, self.starlette)
+        elif issubclass(interface_type, (StarletteRouter)):
+            return StarletteRouter(self.starlette)
         raise ValueError(f"unsupported interface type {interface_type}")
 
     @property

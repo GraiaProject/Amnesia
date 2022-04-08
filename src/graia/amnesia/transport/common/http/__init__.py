@@ -7,7 +7,7 @@ from graia.amnesia.transport.signature import TransportSignature
 
 
 @dataclass
-class endpoint(
+class HttpEndpoint(
     TransportSignature[
         Callable[
             [AbstractServerRequestIO],
@@ -17,3 +17,6 @@ class endpoint(
 ):
     path: str
     methods: List[Literal["GET", "POST", "PUT", "DELETE"]] = field(default_factory=lambda: ["GET"])
+
+    def __hash__(self) -> int:
+        return hash(self.path) + hash(id(self.methods))

@@ -38,12 +38,16 @@ class AbstractStatus(metaclass=ABCMeta):
     def update(self, *args, **kwargs):
         ...
 
-    async def on_required_updated(self, id: str, past: T, current: T):
+    async def on_required_updated(self, id: str, past: Optional[T], current: Optional[T]):
         ...
 
     @property
     def available(self) -> bool:
         return True
+
+    @property
+    def frozen(self) -> bool:
+        return self.id in self._manager.frozens if self._internal_ready else False  # type: ignore
 
     async def wait_for_update(self) -> Self:
         ...

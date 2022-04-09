@@ -1,10 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, Optional, Set, TypeVar
 
-from typing_extensions import Self
-
 if TYPE_CHECKING:
-    from graia.amnesia.status.manager import StatusManager
+    from .manager import StatusManager
 
 T = TypeVar("T")
 
@@ -45,15 +43,19 @@ class AbstractStatus(metaclass=ABCMeta):
     def available(self) -> bool:
         return True
 
-    @property
-    def frozen(self) -> bool:
-        return self.id in self._manager.frozens if self._internal_ready else False  # type: ignore
-
-    async def wait_for_update(self) -> Self:
-        ...
+    async def wait_for_update(self):
+        if not self._internal_ready:
+            raise RuntimeError(f"{self} is not ready")
+        assert self._manager is not None
+        ftr = self._manager._get_waiter(self)
+        if not ftr:
+            ftr = self._manager._ensure_waiter(self)
+        await ftr
 
     async def wait_for_available(self):
-        ...
+        while not self.available:
+            await self.wait_for_update()
 
     async def wait_for_unavailable(self):
-        ...
+        while self.available:
+            await self.wait_for_update()

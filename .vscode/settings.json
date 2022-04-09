@@ -6,6 +6,7 @@
         "levelno",
         "Orjson",
         "Starlette",
+        "ujson",
         "utilles",
         "Uvicorn",
         "yarl"

@@ -1,5 +1,16 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 TJsonLiteralValue = Union[str, int, float, bool, None]
 TJsonKey = Union[str, int]

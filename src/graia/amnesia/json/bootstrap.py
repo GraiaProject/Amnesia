@@ -10,6 +10,15 @@ else:
     CURRENT_BACKEND = BACKEND_INSTANCE
 
 try:
+    import ujson
+except ImportError:
+    pass
+else:
+    from .backend.ujson import BACKEND_INSTANCE
+
+    CURRENT_BACKEND = BACKEND_INSTANCE
+
+try:
     import orjson
 except ImportError:
     pass

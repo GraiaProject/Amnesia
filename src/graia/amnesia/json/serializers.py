@@ -2,7 +2,7 @@ import typing
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, Type, TypeVar
+from typing import Any, Callable, Dict, Generic, Iterable, Mapping, Type, TypeVar
 from uuid import UUID
 
 T = TypeVar("T")
@@ -25,6 +25,16 @@ SERIALIZE_DECIMAL_AS_STR = True
 
 def SERIALIZER_DEFAULT(v, d: Dict[Any, Callable[[Any], Any]] = SERIALIZERS):
     return d[v.__class__](v) if v.__class__ in d else v
+
+
+def DEEP_OBJ_SCAN(x, d: Dict[Any, Callable[[Any], Any]] = SERIALIZERS):
+    if isinstance(x, (str, int, float, bool, type(None))):
+        return x
+    if isinstance(x, Mapping):
+        return {k: DEEP_OBJ_SCAN(v, d) for k, v in x.items()}
+    if isinstance(x, Iterable):
+        return [DEEP_OBJ_SCAN(item, d) for item in x]
+    return SERIALIZER_DEFAULT(x)
 
 
 @SERIALIZERS.new(datetime)

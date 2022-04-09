@@ -5,7 +5,7 @@ license = "MIT"
 name = "graia-amnesia"
 packages = [{include = "graia", from = "src"}]
 readme = "README.md"
-version = "0.0.2"
+version = "0.2.0"
 
 [tool.poetry.dependencies]
 loguru = "^0.6.0"
@@ -24,6 +24,7 @@ uvicorn = "^0.17.6"
 
 [tool.poetry.extras]
 orjson = ["orjson"]
+ujson = ["ujson"]
 
 [build-system]
 build-backend = "poetry.core.masonry.api"

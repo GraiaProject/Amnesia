@@ -10,6 +10,7 @@ from graia.amnesia.builtins.starlette import (
     StarletteService,
 )
 from graia.amnesia.builtins.uvicorn import UvicornService
+from graia.amnesia.json import TJson
 from graia.amnesia.launch.manager import LaunchManager
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http.extra import HttpRequest
@@ -20,7 +21,7 @@ from graia.amnesia.transport.common.websocket import (
     WebsocketEndpoint,
     WebsocketReceivedEvent,
 )
-from graia.amnesia.transport.common.websocket.shortcut import data_type
+from graia.amnesia.transport.common.websocket.shortcut import data_type, json_require
 from graia.amnesia.transport.utilles import CallbackRegistrar, HandlerRegistrar
 
 loop = asyncio.get_event_loop()
@@ -59,7 +60,8 @@ class TestWebsocketServer(Transport):
 
     @cbr.signature(WebsocketReceivedEvent)
     @data_type(str)
-    async def received(self, io: AbstractWebsocketIO, data: str):
+    @json_require
+    async def received(self, io: AbstractWebsocketIO, data: TJson):
         logger.success(f"websocket received: {data}")
         await io.send(f"received!{data!r}")
         # await io.close()

@@ -1,20 +1,6 @@
 import asyncio
-from re import A
-from typing import (
-    Dict,
-    Generic,
-    List,
-    Literal,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    TypedDict,
-    TypeVar,
-    Union,
-    cast,
-    overload,
-)
+from typing import Dict, List, Literal, Optional, Type, TypeVar, Union, cast, overload
+from weakref import WeakValueDictionary
 
 from .abc import AbstractStatus
 
@@ -26,16 +12,32 @@ class StatusManager:
     components: List[AbstractStatus]
 
     _id_component_cache: Dict[str, AbstractStatus]
-    _waiters: Dict[str, TWaiterFtr]
+    _waiters: WeakValueDictionary[str, TWaiterFtr]
 
     def __init__(self):
         self.components = []
         self._id_component_cache = {}
         self.frozens = set()
-        self._waiters = {}
+        self._waiters = WeakValueDictionary[str, TWaiterFtr]()
 
     def _cache(self):
         self._id_component_cache = {i.id: i for i in self.components}
+
+    def _exists_waiter(self, target: Union[str, AbstractStatus]) -> bool:
+        self.exists(target, error=True)
+        if isinstance(target, str):
+            target = cast(AbstractStatus, self.get(target))
+        return target.id in self._waiters
+
+    def _ensure_waiter(self, target: Union[str, AbstractStatus]):
+        self.exists(target, error=True)
+        if isinstance(target, str):
+            target = cast(AbstractStatus, self.get(target))
+        if target.id in self._waiters:
+            return self._waiters[target.id]
+        ftr = asyncio.Future()
+        self._waiters[target.id] = ftr
+        return ftr
 
     def _dispose_waiter(self, target: Union[str, AbstractStatus]):
         self.exists(target, error=True)
@@ -46,6 +48,15 @@ class StatusManager:
                 self._waiters[target_id].cancel()
             del self._waiters[target_id]
 
+    def _get_required(self, target: Union[AbstractStatus, str]):
+        if isinstance(target, AbstractStatus):
+            target = target.id
+        return [i for i in self.components if target in i.required]
+
+    def _get_waiter(self, target: Union[str, AbstractStatus]) -> Optional[TWaiterFtr]:
+        self.exists(target, error=True)
+        return self._waiters.get(target.id if isinstance(target, AbstractStatus) else target, None)  # type: ignore
+
     def notify_update_callback(
         self,
         sid: str,
@@ -53,11 +64,6 @@ class StatusManager:
         current: Optional[AbstractStatus] = None,
     ):
         asyncio.create_task(asyncio.wait([i.on_required_updated(sid, past, current) for i in self._get_required(sid)]))
-
-    def _get_required(self, target: Union[AbstractStatus, str]):
-        if isinstance(target, AbstractStatus):
-            target = target.id
-        return [i for i in self.components if target in i.required]
 
     def notify_update(self, status: AbstractStatus, past: Optional[AbstractStatus] = None):
         self.exists(status, error=True)
@@ -98,14 +104,14 @@ class StatusManager:
         return component.id
 
     @overload
-    def unmount(self, target: AbstractStatus):
+    def umount(self, target: AbstractStatus):
         ...
 
     @overload
-    def unmount(self, target: str):
+    def umount(self, target: str):
         ...
 
-    def unmount(self, target: Union[AbstractStatus, str]):
+    def umount(self, target: Union[AbstractStatus, str]):
         self.exists(target, error=True)
 
         if isinstance(target, str):
@@ -134,23 +140,3 @@ class StatusManager:
             return {k: v for k, v in self._id_component_cache.items() if isinstance(v, target)}
         else:
             return [v for v in self._id_component_cache.values() if isinstance(v, target)]
-
-    def _get_waiter(self, target: Union[str, AbstractStatus]) -> Optional[TWaiterFtr]:
-        self.exists(target, error=True)
-        return self._waiters.get(target.id if isinstance(target, AbstractStatus) else target, None)  # type: ignore
-
-    def _ensure_waiter(self, target: Union[str, AbstractStatus]):
-        self.exists(target, error=True)
-        if isinstance(target, str):
-            target = cast(AbstractStatus, self.get(target))
-        if target.id in self._waiters:
-            return self._waiters[target.id]
-        ftr = asyncio.Future()
-        self._waiters[target.id] = ftr
-        return ftr
-
-    def _exists_waiter(self, target: Union[str, AbstractStatus]) -> bool:
-        self.exists(target, error=True)
-        if isinstance(target, str):
-            target = cast(AbstractStatus, self.get(target))
-        return target.id in self._waiters

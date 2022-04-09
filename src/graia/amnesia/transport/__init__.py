@@ -10,6 +10,7 @@ class Transport:
     handlers: Dict[TransportSignature, Callable] = {}
     callbacks: Dict[TransportSignature, List] = {}
 
+    @classmethod
     def __init_subclass__(cls, **kwargs) -> None:
         cls.handlers = {}
         cls.callbacks = {}

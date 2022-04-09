@@ -68,6 +68,7 @@ class TestWebsocketServer(Transport):
     async def closed(self, io: AbstractWebsocketIO):
         logger.success("websocket closed!")
 
+    # TODO: 更美观优雅的声明...
     @hbr.signature(WebsocketEndpoint("/ws_test"))
     async def ws_test(self, io: AbstractWebsocketIO):
         ...

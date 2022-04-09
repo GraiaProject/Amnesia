@@ -94,6 +94,10 @@ class ClientWebsocketIO(AbstractWebsocketIO):
     def closed(self):
         return self.connection.closed
 
+    async def wait_for_ready(self):
+        if self.closed:
+            raise ConnectionClosed("websocket closed")
+
 
 T = TypeVar("T", ClientResponse, ClientWebSocketResponse)
 

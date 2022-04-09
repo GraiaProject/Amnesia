@@ -138,6 +138,7 @@ class ClientConnectionRider(TransportRider[str, Any], Generic[T]):
             await asyncio.wait([i(*args, **kwargs) for i in callbacks])
 
     async def connection_manage(self: "ClientConnectionRider[ClientWebSocketResponse]"):
+        # TODO: 自动重连策略.
         io = ClientWebsocketIO(self.response)
         await self.trigger_callbacks(WebsocketConnectEvent, io)
         try:

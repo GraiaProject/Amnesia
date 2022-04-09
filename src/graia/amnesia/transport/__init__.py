@@ -5,7 +5,7 @@ from graia.amnesia.transport.signature import TransportSignature
 
 T = TypeVar("T", bound=Callable)
 
-
+# TODO: 连接内简易触发器, 用于通知错误之类的, 或者是 req-res on ws 这种模式上的.
 class Transport:
     handlers: Dict[TransportSignature, Callable] = {}
     callbacks: Dict[TransportSignature, List] = {}

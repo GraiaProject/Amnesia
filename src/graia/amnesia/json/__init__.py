@@ -1,16 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 TJsonLiteralValue = Union[str, int, float, bool, None]
 TJsonKey = Union[str, int]
@@ -36,3 +25,7 @@ class JSONBackend(metaclass=ABCMeta):
         self, value: Any, *, custom_serializers: Optional[Dict[Type, TJsonCustomSerializer]] = None
     ) -> bytes:
         return self.serialize(value, custom_serializers=custom_serializers).encode("utf-8")
+
+
+from .bootstrap import CURRENT_BACKEND as CURRENT_BACKEND
+from .frontend import Json as Json

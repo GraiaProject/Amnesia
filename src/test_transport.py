@@ -22,7 +22,7 @@ from graia.amnesia.transport.common.websocket import (
     WebsocketReceivedEvent,
 )
 from graia.amnesia.transport.common.websocket.shortcut import data_type, json_require
-from graia.amnesia.transport.utilles import CallbackRegistrar, HandlerRegistrar
+from graia.amnesia.transport.utilles import TransportRegistrar
 
 loop = asyncio.get_event_loop()
 mgr = LaunchManager()
@@ -30,14 +30,14 @@ mgr.add_service(AiohttpService(ClientSession(loop=loop)))
 mgr.add_service(StarletteService())
 mgr.add_service(UvicornService("127.0.0.1", 8000))
 
-cbr = CallbackRegistrar()
-hbr = HandlerRegistrar()
+cbr = TransportRegistrar()
 
 
-@hbr.apply
 @cbr.apply
 class TestWebsocketServer(Transport):
-    @cbr.signature(WebsocketConnectEvent)
+    cbr.declare(WebsocketEndpoint("/ws_test"))
+
+    @cbr.on(WebsocketConnectEvent)
     async def connected(self, io: AbstractWebsocketIO):
         print("?")
         req = await io.extra(HttpRequest)
@@ -51,14 +51,14 @@ class TestWebsocketServer(Transport):
             await io.close()
         logger.success("websocket connected!")
 
-    @cbr.signature(WebsocketReceivedEvent)
+    @cbr.on(WebsocketReceivedEvent)
     @data_type(bytes)
     async def received_b(self, io: AbstractWebsocketIO, data: bytes):
         logger.success(f"websocket received: {data}")
         await io.send(f"received bytes!{data!r}")
         # await io.close()
 
-    @cbr.signature(WebsocketReceivedEvent)
+    @cbr.on(WebsocketReceivedEvent)
     @data_type(str)
     @json_require
     async def received(self, io: AbstractWebsocketIO, data: TJson):
@@ -66,23 +66,17 @@ class TestWebsocketServer(Transport):
         await io.send(f"received!{data!r}")
         # await io.close()
 
-    @cbr.signature(WebsocketCloseEvent)
+    @cbr.on(WebsocketCloseEvent)
     async def closed(self, io: AbstractWebsocketIO):
         logger.success("websocket closed!")
 
-    # TODO: 更美观优雅的声明...!
-    # 加一个与 callback, handler 同级的.
-    @hbr.signature(WebsocketEndpoint("/ws_test"))
-    async def ws_test(self, io: AbstractWebsocketIO):
-        ...
 
-
-cbx = CallbackRegistrar()
+cbx = TransportRegistrar()
 
 
 @cbx.apply
 class TestWsClient(Transport):
-    @cbx.signature(WebsocketConnectEvent)
+    @cbx.on(WebsocketConnectEvent)
     async def connected(self, io: AbstractWebsocketIO):
         logger.info(io.extra(HttpRequest))
         if io.extra(HttpRequest) == "/test":
@@ -90,11 +84,11 @@ class TestWsClient(Transport):
         logger.success("websocket connected!")
         await io.send(b"hello!")
 
-    @cbx.signature(WebsocketReceivedEvent)
+    @cbx.on(WebsocketReceivedEvent)
     async def received(self, io: AbstractWebsocketIO, data: bytes):
         logger.success(f"websocket received: {data}")
 
-    @cbx.signature(WebsocketCloseEvent)
+    @cbx.on(WebsocketCloseEvent)
     async def closed(self, io: AbstractWebsocketIO):
         logger.success("websocket closed!")
 

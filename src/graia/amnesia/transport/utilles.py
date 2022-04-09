@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Type, TypeVar
 
 from graia.amnesia.transport.signature import TransportSignature
 
@@ -8,27 +8,36 @@ if TYPE_CHECKING:
 T_TransportHandler = TypeVar("T_TransportHandler", bound=Callable)
 
 
-class HandlerRegistrar(Dict[TransportSignature[T_TransportHandler], T_TransportHandler]):
-    def signature(self, signature: TransportSignature[T_TransportHandler]):
+class TransportRegistrar(Generic[T_TransportHandler]):
+    handlers: Dict[TransportSignature, Callable]
+    callbacks: Dict[TransportSignature, List]
+    declares: List[TransportSignature[None]]
+
+    def __init__(self) -> None:
+        self.handlers = {}
+        self.callbacks = {}
+        self.declares = []
+
+    def handle(self, signature: TransportSignature[T_TransportHandler]):
         def decorator(method: T_TransportHandler):
-            self[signature] = method
+            self.handlers[signature] = method
             return method
 
         return decorator
 
-    def apply(self, transport_class: Type["Transport"]):
-        transport_class.handlers.update(self)
-        return transport_class
-
-
-class CallbackRegistrar(Dict[TransportSignature[T_TransportHandler], List[T_TransportHandler]]):
-    def signature(self, signature: TransportSignature[T_TransportHandler]):
+    def on(self, signature: TransportSignature[T_TransportHandler]):
         def decorator(method: T_TransportHandler):
-            self.setdefault(signature, []).append(method)
+            self.callbacks.setdefault(signature, []).append(method)
             return method
 
         return decorator
 
+    def declare(self, signature: TransportSignature[Any]):
+        self.declares.append(signature)
+        return signature
+
     def apply(self, transport_class: Type["Transport"]):
-        transport_class.callbacks.update(self)
+        transport_class.handlers.update(self.handlers)
+        transport_class.callbacks.update(self.callbacks)
+        transport_class.declares.extend(self.declares)
         return transport_class

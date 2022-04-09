@@ -16,7 +16,7 @@ from .operator import WSConnectionClose as WSConnectionClose
 @dataclass
 class WebsocketEndpoint(
     http.HttpEndpoint,
-    TransportSignature[Callable[[AbstractWebsocketIO], None]],
+    TransportSignature[None],
 ):
     method: Final[str] = "WS"
 

@@ -9,15 +9,18 @@ T = TypeVar("T", bound=Callable)
 class Transport:
     handlers: Dict[TransportSignature, Callable] = {}
     callbacks: Dict[TransportSignature, List] = {}
+    declares: List[TransportSignature[None]] = []
 
     @classmethod
     def __init_subclass__(cls, **kwargs) -> None:
         cls.handlers = {}
         cls.callbacks = {}
+        cls.declares = []
         for base in reversed(cls.__bases__):
             if issubclass(base, Transport):
                 cls.handlers.update(base.handlers)
                 cls.callbacks.update(base.callbacks)
+                cls.declares.extend(base.declares)
 
     def get_handler(self, signature: TransportSignature[T]) -> T:
         handler = cast(Optional[T], self.handlers.get(signature))

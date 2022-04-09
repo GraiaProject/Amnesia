@@ -244,13 +244,16 @@ class StarletteRouter(ExportInterface, TransportRider[str, Union[StarletteReques
 
     def use(self, transport: Transport):
         self.transports.append(transport)
+
         for signature, handler in transport.iter_handlers():
-            if isinstance(signature, WebsocketEndpoint):
-                self.starlette.add_websocket_route(signature.path, self.websocket_handler)
-            elif isinstance(signature, HttpEndpoint):
+            if isinstance(signature, HttpEndpoint):
                 self.starlette.add_route(
                     signature.path, partial(self.http_request_handler, handler), methods=signature.methods
                 )
+
+        for signature in transport.declares:
+            if isinstance(signature, WebsocketEndpoint):
+                self.starlette.add_websocket_route(signature.path, self.websocket_handler)
 
 
 class StarletteService(Service):

@@ -4,6 +4,7 @@
         "Aiohttp",
         "ASGI",
         "levelno",
+        "Orjson",
         "Starlette",
         "utilles",
         "Uvicorn",

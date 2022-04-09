@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, Dict, List, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 TJsonLiteralValue = Union[str, int, float, bool, None]
 TJsonKey = Union[str, int]
@@ -14,9 +14,14 @@ TJsonCustomSerializer = Callable[[Any], TJson]
 
 class JSONBackend(metaclass=ABCMeta):
     @abstractmethod
-    def dumps(self, value: TJson, *, defaults: Dict[Type, TJsonCustomSerializer]) -> str:
+    def serialize(self, value: TJson, *, custom_serializers: Optional[Dict[Type, TJsonCustomSerializer]] = None) -> str:
         raise NotImplementedError()
 
     @abstractmethod
-    def loads(self, value: str) -> TJson:
+    def deserialize(self, value: str) -> TJson:
         raise NotImplementedError()
+
+    def serialize_as_bytes(
+        self, value: Any, *, custom_serializers: Optional[Dict[Type, TJsonCustomSerializer]] = None
+    ) -> bytes:
+        return self.serialize(value, custom_serializers=custom_serializers).encode("utf-8")

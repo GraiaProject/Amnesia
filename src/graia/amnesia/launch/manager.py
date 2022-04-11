@@ -5,11 +5,12 @@ from loguru import logger
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.status import Status as RichStatus
+from rich.theme import Theme
 
 from graia.amnesia.launch.component import LaunchComponent, resolve_requirements
 from graia.amnesia.launch.interface import ExportInterface
 from graia.amnesia.launch.service import Service, TInterface
-from graia.amnesia.utilles import priority_strategy
+from graia.amnesia.utilles import LoguruRichHandler, priority_strategy
 
 
 class LaunchManager:
@@ -26,7 +27,14 @@ class LaunchManager:
         self.services = []
         self._service_interfaces = {}
         self.sigexit = asyncio.Event()
-        self.rich_console = rich_console or Console()
+        self.rich_console = rich_console or Console(
+            theme=Theme(
+                {
+                    "logging.level.success": "green",
+                    "logging.level.trace": "bright_black",
+                }
+            )
+        )
 
     def update_launch_components(self, components: List[LaunchComponent]):
         self.launch_components.update({i.id: i for i in components})
@@ -87,9 +95,9 @@ class LaunchManager:
         logger.configure(
             handlers=[
                 {
-                    "sink": RichHandler(console=self.rich_console, markup=True),
-                    "format": "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | "
-                    "<cyan>{name}</cyan>: <cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+                    "sink": LoguruRichHandler(console=self.rich_console),
+                    "format": "{message}",
+                    "level": 0,
                 }
             ]
         )
@@ -113,7 +121,7 @@ class LaunchManager:
             status.update("all launch components prepared.")
             await asyncio.sleep(1)
 
-        logger.info("[green bold]components prepared, switch to mainlines and block main thread.")
+        logger.info("components prepared, switch to mainlines and block main thread.", render_attr="green bold")
 
         loop = asyncio.get_running_loop()
         tasks = [
@@ -130,11 +138,11 @@ class LaunchManager:
                 self.maintask = loop.create_task(asyncio.wait(tasks))
                 await asyncio.shield(self.maintask)
         except asyncio.CancelledError:
-            logger.info("[red bold]cancelled by user.")
+            logger.info("cancelled by user.", render_attr="red bold")
             if not self.sigexit.is_set():
                 self.sigexit.set()
         finally:
-            logger.info("[red bold]all mainlines exited, cleanup start.")
+            logger.info("all mainlines exited, cleanup start.", render_attr="red bold")
             for component_layer in reversed(resolve_requirements(set(self.launch_components.values()))):
                 tasks = [
                     asyncio.create_task(component.cleanup(self), name=component.id)  # type: ignore
@@ -145,8 +153,8 @@ class LaunchManager:
                     for task in tasks:
                         task.add_done_callback(lambda t: logger.success(f"{t.get_name()} cleanup finished."))
                     await asyncio.gather(*tasks)
-            logger.info("[green bold]cleanup finished.")
-            logger.warning("[red bold]exiting...")
+            logger.success("cleanup finished.", render_attr="green bold")
+            logger.warning("exiting...", render_attr="red bold")
 
     def launch_blocking(self, *, loop: Optional[asyncio.AbstractEventLoop] = None):
         loop = loop or asyncio.new_event_loop()

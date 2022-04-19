@@ -95,13 +95,16 @@ class LaunchManager:
         logger.configure(
             handlers=[
                 {
-                    "sink": LoguruRichHandler(console=self.rich_console),
-                    "format": "{message}",
+                    "sink": LoguruRichHandler(
+                        console=self.rich_console, rich_tracebacks=True, tracebacks_show_locals=True
+                    ),
+                    "format": lambda _: "{message}",
                     "level": 0,
+                    "backtrace": False,
+                    "diagnose": False,
                 }
             ]
         )
-
         for service in self.services:
             logger.info(f"using service: {service.__class__.__name__}")
 
@@ -121,7 +124,7 @@ class LaunchManager:
             status.update("all launch components prepared.")
             await asyncio.sleep(1)
 
-        logger.info("components prepared, switch to mainlines and block main thread.", render_attr="green bold")
+        logger.info("components prepared, switch to mainlines and block main thread.", style="green bold")
 
         loop = asyncio.get_running_loop()
         tasks = [
@@ -138,11 +141,11 @@ class LaunchManager:
                 self.maintask = loop.create_task(asyncio.wait(tasks))
                 await asyncio.shield(self.maintask)
         except asyncio.CancelledError:
-            logger.info("cancelled by user.", render_attr="red bold")
+            logger.info("cancelled by user.", style="red bold")
             if not self.sigexit.is_set():
                 self.sigexit.set()
         finally:
-            logger.info("all mainlines exited, cleanup start.", render_attr="red bold")
+            logger.info("all mainlines exited, cleanup start.", style="red bold")
             for component_layer in reversed(resolve_requirements(set(self.launch_components.values()))):
                 tasks = [
                     asyncio.create_task(component.cleanup(self), name=component.id)  # type: ignore
@@ -153,8 +156,8 @@ class LaunchManager:
                     for task in tasks:
                         task.add_done_callback(lambda t: logger.success(f"{t.get_name()} cleanup finished."))
                     await asyncio.gather(*tasks)
-            logger.success("cleanup finished.", render_attr="green bold")
-            logger.warning("exiting...", render_attr="red bold")
+            logger.success("cleanup finished.", style="green bold")
+            logger.warning("exiting...", style="red bold")
 
     def launch_blocking(self, *, loop: Optional[asyncio.AbstractEventLoop] = None):
         loop = loop or asyncio.new_event_loop()

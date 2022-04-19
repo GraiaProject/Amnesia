@@ -145,8 +145,8 @@ class LoguruHandler(logging.Handler):
         )
 
 
-def highlight(attr: str) -> Dict[str, Callable[[Text], Text]]:
-    """附加 attr 给文本.
+def highlight(style: str) -> Dict[str, Callable[[Text], Text]]:
+    """附加 style 给文本.
 
     Example:
     ```py
@@ -155,7 +155,7 @@ def highlight(attr: str) -> Dict[str, Callable[[Text], Text]]:
     """
 
     def highlighter(text: Text) -> Text:
-        return Text.from_markup(f"[{attr}]{text.plain}[/{attr}]")
+        return Text(text.plain, style=style)
 
     return {"highlighter": highlighter}
 
@@ -167,21 +167,24 @@ class LoguruRichHandler(RichHandler):
     Example:
 
     ```py
-    logger.warning("Sth is happening!", render_attr="red bold")
+    logger.warning("Sth is happening!", style="red bold")
     logger.warning("Sth is happening!", **highlight("red bold"))
     logger.warning("Sth is happening!", alt="[red bold]Sth is happening![/red bold]")
+    logger.warning("Sth is happening!", text=Text.from_markup("[red bold]Sth is happening![/red bold]"))
     ```
     """
 
     def render_message(self, record: LogRecord, message: str) -> "ConsoleRenderable":
         extra: dict = getattr(record, "extra", {})
-        if "render_attr" in extra:
-            record.__dict__.update(highlight(extra["render_attr"]))
+        if "style" in extra:
+            record.__dict__.update(highlight(extra["style"]))
         elif "highlighter" in extra:
-            record.highlighter = extra["highlighter"]
+            setattr(record, "highlighter", extra["highlighter"])
         if "alt" in extra:
             message = extra["alt"]
-            record.markup = True
+            setattr(record, "markup", True)
         if "markup" in extra:
-            record.markup = extra["markup"]
+            setattr(record, "markup", extra["markup"])
+        if "text" in extra:
+            setattr(record, "highlighter", lambda _: extra["text"])
         return super().render_message(record, message)

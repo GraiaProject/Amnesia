@@ -8,7 +8,7 @@ from graia.amnesia.builtins.common import ASGIHandlerProvider
 from graia.amnesia.launch.component import LaunchComponent
 from graia.amnesia.launch.manager import LaunchManager
 from graia.amnesia.launch.service import Service
-from graia.amnesia.utilles import LoguruHandler
+from graia.amnesia.log import LoguruHandler
 
 
 class WithoutSigHandlerServer(Server):

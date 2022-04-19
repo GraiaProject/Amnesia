@@ -3,14 +3,13 @@ from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Type
 
 from loguru import logger
 from rich.console import Console
-from rich.logging import RichHandler
 from rich.status import Status as RichStatus
 from rich.theme import Theme
 
 from graia.amnesia.launch.component import LaunchComponent, resolve_requirements
 from graia.amnesia.launch.interface import ExportInterface
 from graia.amnesia.launch.service import Service, TInterface
-from graia.amnesia.utilles import LoguruRichHandler, priority_strategy
+from graia.amnesia.utilles import priority_strategy
 
 
 class LaunchManager:
@@ -92,19 +91,6 @@ class LaunchManager:
         return self._service_interfaces[interface_type].get_interface(interface_type)
 
     async def launch(self):
-        logger.configure(
-            handlers=[
-                {
-                    "sink": LoguruRichHandler(
-                        console=self.rich_console, rich_tracebacks=True, tracebacks_show_locals=True
-                    ),
-                    "format": lambda _: "{message}",
-                    "level": 0,
-                    "backtrace": False,
-                    "diagnose": False,
-                }
-            ]
-        )
         for service in self.services:
             logger.info(f"using service: {service.__class__.__name__}")
 

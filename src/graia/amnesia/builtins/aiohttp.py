@@ -144,6 +144,8 @@ class ClientConnectionRider(TransportRider[str, Any], Generic[T]):
         try:
             async for data in io.packets():
                 await self.trigger_callbacks(WebsocketReceivedEvent, io, data)
+        except ConnectionClosed:
+            pass  # ?
         finally:
             await self.trigger_callbacks(WebsocketCloseEvent, io)
             if not io.closed:

@@ -235,7 +235,7 @@ python-versions = ">=3.6"
 name = "idna"
 version = "3.3"
 description = "Internationalized Domain Names in Applications (IDNA)"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.5"
 
@@ -375,7 +375,7 @@ traitlets = "*"
 name = "multidict"
 version = "6.0.2"
 description = "multidict implementation"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 
@@ -725,7 +725,7 @@ dev = ["pytest (>=4.6.2)", "black (>=19.3b0)"]
 name = "yarl"
 version = "1.7.2"
 description = "Yet another URL library"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -740,7 +740,7 @@ ujson = ["ujson"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "7cf7fe7fd2dc01c32074155f3c796e9e9258a28a56cb794a2c7b47414eac0a04"
+content-hash = "a15a0f5019699959a2bcea6229498ab2f5936fed2b87f569701b3519875d2ab1"
 
 [metadata.files]
 aiohttp = [

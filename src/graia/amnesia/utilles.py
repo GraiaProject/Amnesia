@@ -18,63 +18,46 @@ def priority_strategy(
     ],
 ) -> Dict[H, T]:
     result = {}
-    priorities_cache = {}
-    for item in items:
-        pattern = getter(item)
+    _cache = {}
+
+    def _raise_conflict(content):
+        raise ValueError(
+            f"{content} which is an unlocated item is already existed, and it conflicts with {result[content]}"
+        )
+
+    def _raise_existed(content):
+        raise ValueError(f"{content} is already existed, and it conflicts with {result[content]}, an unlocated item.")
+
+    def _handle(pattern):
         if isinstance(pattern, Set):
             for content in pattern:
-                if content in priorities_cache:
-                    raise ValueError(
-                        f"{content} which is an unlocated item is already existed, and it conflicts with {result[content]}"
-                    )
-                priorities_cache[content] = ...
+                if content in _cache:
+                    _raise_conflict(content)
+                _cache[content] = ...
                 result[content] = item
         elif isinstance(pattern, Dict):
             for content, priority in pattern.items():
-                if content in priorities_cache:
-                    if priorities_cache[content] is ...:
-                        raise ValueError(
-                            f"{content} is already existed, and it conflicts with {result[content]}, an unlocated item."
-                        )
+                if content in _cache:
+                    if _cache[content] is ...:
+                        _raise_existed(content)
                     if priority is ...:
-                        raise ValueError(
-                            f"{content} which is an unlocated item is already existed, and it conflicts with {result[content]}"
-                        )
-                    if priorities_cache[content] < priority:
-                        priorities_cache[content] = priority
+                        _raise_conflict(content)
+                    if _cache[content] < priority:
+                        _cache[content] = priority
                         result[content] = item
                 else:
-                    priorities_cache[content] = priority
+                    _cache[content] = priority
                     result[content] = item
-        elif isinstance(pattern, Tuple):
+        else:
+            raise TypeError(f"{pattern} is not a valid pattern.")
+
+    for item in items:
+        pattern = getter(item)
+        if isinstance(pattern, (dict, set)):
+            _handle(pattern)
+        elif isinstance(pattern, tuple):
             for subpattern in pattern:
-                if isinstance(subpattern, Set):
-                    for content in subpattern:
-                        if content in priorities_cache:
-                            raise ValueError(
-                                f"{content} which is an unlocated item is already existed, and it conflicts with {result[content]}"
-                            )
-                        priorities_cache[content] = ...
-                        result[content] = item
-                elif isinstance(subpattern, Dict):
-                    for content, priority in subpattern.items():
-                        if content in priorities_cache:
-                            if priorities_cache[content] is ...:
-                                raise ValueError(
-                                    f"{content} is already existed, and it conflicts with {result[content]}, an unlocated item."
-                                )
-                            if priority is ...:
-                                raise ValueError(
-                                    f"{content} which is an unlocated item is already existed, and it conflicts with {result[content]}"
-                                )
-                            if priorities_cache[content] < priority:
-                                priorities_cache[content] = priority
-                                result[content] = item
-                        else:
-                            priorities_cache[content] = priority
-                            result[content] = item
-                else:
-                    raise TypeError(f"{subpattern} is not a valid pattern.")
+                _handle(subpattern)
         else:
             raise TypeError(f"{pattern} is not a valid pattern.")
     return result

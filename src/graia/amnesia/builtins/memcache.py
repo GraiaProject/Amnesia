@@ -8,9 +8,10 @@ from graia.amnesia.launch.component import LaunchComponent
 from graia.amnesia.launch.interface import ExportInterface
 from graia.amnesia.launch.manager import LaunchManager
 from graia.amnesia.launch.service import Service
+from graia.amnesia.transport.common.storage import CacheStorage
 
 
-class Memcache(ExportInterface):
+class Memcache(CacheStorage[Any]):
     cache: Dict[str, Tuple[Optional[float], Any]]
     expire: List[Tuple[float, str]]
 
@@ -59,7 +60,7 @@ class Memcache(ExportInterface):
 
 
 class MemcacheService(Service):
-    supported_interface_types = {Memcache}
+    supported_interface_types = {Memcache}, {CacheStorage: 10}
 
     interval: float
     cache: Dict[str, Tuple[Optional[float], Any]]

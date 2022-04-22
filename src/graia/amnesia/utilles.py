@@ -178,10 +178,10 @@ class LoguruRichHandler(RichHandler):
         if "render_attr" in extra:
             record.__dict__.update(highlight(extra["render_attr"]))
         elif "highlighter" in extra:
-            record.highlighter = extra["highlighter"]
+            record.highlighter = extra["highlighter"]  # type: ignore
         if "alt" in extra:
             message = extra["alt"]
-            record.markup = True
+            record.markup = True  # type: ignore
         if "markup" in extra:
-            record.markup = extra["markup"]
+            record.markup = extra["markup"]  # type: ignore
         return super().render_message(record, message)

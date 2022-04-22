@@ -23,7 +23,7 @@ class Transport:
                 cls.declares.extend(base.declares)
 
     def get_handler(self, signature: TransportSignature[T]) -> T:
-        handler = cast(Optional[T], self.handlers.get(signature))
+        handler = cast(Optional[T], self.handlers.get(signature, None))
         if not handler:
             raise TypeError(f"{self.__class__.__name__} has no handler for {signature}")
         return partial(handler, self)  # type: ignore

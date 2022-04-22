@@ -1,9 +1,23 @@
 import asyncio
+import contextlib
 import weakref
 from functools import partial, reduce
-from typing import Any, Generic, Optional, Type, TypeVar, Union, cast, overload
+from typing import (
+    Any,
+    AsyncContextManager,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from aiohttp import ClientResponse, ClientSession, ClientWebSocketResponse, WSMsgType
+from loguru import logger
+from typing_extensions import ParamSpec, Self
 
 from graia.amnesia.launch.component import LaunchComponent
 from graia.amnesia.launch.interface import ExportInterface
@@ -19,6 +33,9 @@ from graia.amnesia.transport.common.websocket.event import (
 )
 from graia.amnesia.transport.common.websocket.event import (
     WebsocketReceivedEvent as WebsocketReceivedEvent,
+)
+from graia.amnesia.transport.common.websocket.event import (
+    WebsocketReconnect as WebsocketReconnect,
 )
 from graia.amnesia.transport.common.websocket.io import AbstractWebsocketIO
 from graia.amnesia.transport.common.websocket.operator import (
@@ -101,15 +118,59 @@ class ClientWebsocketIO(AbstractWebsocketIO):
 
 T = TypeVar("T", ClientResponse, ClientWebSocketResponse)
 
+P = ParamSpec("P")
 
-class ClientConnectionRider(TransportRider[str, Any], Generic[T]):
-    def __init__(self, response: T):
-        self.transports = []
-        self.response = response
+
+class ClientConnectionRider(TransportRider[str, T], Generic[T]):
+    def __init__(
+        self,
+        interface: "AiohttpClientInterface",
+        conn_func: Callable[..., AsyncContextManager[T]],
+        call_param: Dict[str, Any],
+    ) -> None:
+        self.transports: List[Transport] = []
         self.connections = {}
-        self.connections["default"] = response
-        self.autoreceive = False
+        self.response: Optional[T] = None
+        self.conn_func = conn_func
+        self.call_param = call_param
+        self.keep_connection: bool = True
+        self._stat_updater: Optional[asyncio.Event] = None
+        self.connected: bool = False
+        self.connected_sentinel: Optional[asyncio.Future] = None
+        self.autoreceive: bool = False
         self.task = None
+        self.connect_task = None
+        self.interface = interface
+
+    async def _update_conn(self):
+        if not self._stat_updater:
+            self._stat_updater = asyncio.Event()
+        self._stat_updater.set()
+        self._stat_updater.clear()
+
+    async def _connect(self):
+        async with self.conn_func(**self.call_param) as resp:
+            self.response = resp
+            self.connected = True
+            await self._update_conn()
+            assert self._stat_updater
+            while self.keep_connection:
+                await self._stat_updater.wait()
+            self.connected = False
+            await self._update_conn()
+
+    async def _start_conn(self) -> Self:
+        self.response = None
+        await self._update_conn()  # init self._stat_updater
+        assert self._stat_updater
+        if self.connect_task is None:
+            self.connect_task = asyncio.create_task(self._connect())
+        while not self.connected:
+            await self._stat_updater.wait()
+        return self
+
+    def __await__(self):
+        return self._start_conn().__await__()
 
     @overload
     def io(self: "ClientConnectionRider[ClientResponse]") -> ClientRequestIO:
@@ -124,6 +185,9 @@ class ClientConnectionRider(TransportRider[str, Any], Generic[T]):
             raise TypeError("this rider has just one connection")
         if self.autoreceive:
             raise TypeError("this rider has been taken over by auto receive, use .use(transport) instead.")
+        if not self.connected:
+            raise RuntimeError("the connection is not ready, please await the instance to ensure connection")
+        assert self.response
         if isinstance(self.response, ClientWebSocketResponse):
             return ClientWebsocketIO(self.response)
         elif isinstance(self.response, ClientResponse):
@@ -137,27 +201,53 @@ class ClientConnectionRider(TransportRider[str, Any], Generic[T]):
             callbacks = reduce(lambda a, b: a + b, callbacks)
             await asyncio.wait([i(*args, **kwargs) for i in callbacks])
 
-    async def connection_manage(self: "ClientConnectionRider[ClientWebSocketResponse]"):
-        # TODO: 自动重连策略.
-        io = ClientWebsocketIO(self.response)
-        await self.trigger_callbacks(WebsocketConnectEvent, io)
-        try:
-            async for data in io.packets():
-                await self.trigger_callbacks(WebsocketReceivedEvent, io, data)
-        except ConnectionClosed:
-            pass  # ?
-        finally:
-            await self.trigger_callbacks(WebsocketCloseEvent, io)
-            if not io.closed:
-                await io.close()
+    async def connection_manage(self):
+        __original_transports: List[Transport] = self.transports[:]
+
+        with contextlib.suppress(Exception):
+            while self.transports:
+                try:
+                    await self._start_conn()
+                    assert isinstance(
+                        self.response, ClientWebSocketResponse
+                    ), f"{self.response} is not a ClientWebSocketResponse"
+                    io = ClientWebsocketIO(self.response)
+                    await self.trigger_callbacks(WebsocketConnectEvent, io)
+                    try:
+                        async for data in io.packets():
+                            await self.trigger_callbacks(WebsocketReceivedEvent, io, data)
+                    except ConnectionClosed:
+                        pass
+                    await self.trigger_callbacks(WebsocketCloseEvent, io)
+                    if not io.closed:
+                        await io.close()
+                    self.keep_connection = False
+                    assert self._stat_updater
+                    await self._update_conn()
+                    while self.connected:
+                        await self._stat_updater.wait()  # drop connection
+                    self.keep_connection = True
+                    self.connect_task = None
+                except Exception as e:
+                    logger.exception(e)
+                # scan transports
+                continuing_transports: List[Transport] = self.transports[:]
+                self.transports = []
+                reconnect_handle_tasks = []
+                for t in continuing_transports:
+                    handler = t.get_handler(WebsocketReconnect)
+                    if handler:
+                        tsk = asyncio.create_task(handler(self))
+                        tsk.add_done_callback(lambda tsk: self.transports.append(t) if tsk.result() is True else None)
+                        reconnect_handle_tasks.append(tsk)
+                await asyncio.wait(reconnect_handle_tasks, return_when=asyncio.ALL_COMPLETED)
+        self.transports = __original_transports
 
     def use(self, transport: Transport):
-        if not isinstance(self.response, ClientWebSocketResponse):
-            raise TypeError("this response is not a packet io.")
         self.autoreceive = True
         self.transports.append(transport)
         if not self.task:
-            self.task = asyncio.create_task(self.connection_manage())  # type: ignore
+            self.task = asyncio.create_task(self.connection_manage())
         return self.task
 
 
@@ -167,7 +257,7 @@ class AiohttpClientInterface(ExportInterface["AiohttpService"]):
     def __init__(self, service: "AiohttpService") -> None:
         self.service = service
 
-    async def request(
+    def request(
         self,
         method: str,
         url: str,
@@ -176,26 +266,27 @@ class AiohttpClientInterface(ExportInterface["AiohttpService"]):
         headers: Optional[dict] = None,
         cookies: Optional[dict] = None,
         timeout: Optional[float] = None,
-    ):
-        response = await self.service.session.request(
-            method,
-            url,
-            params=params,
-            data=data,
-            headers=headers,
-            cookies=cookies,
-            timeout=timeout,
-        ).__aenter__()
-        return ClientConnectionRider(response)
+        **kwargs: Any,
+    ) -> ClientConnectionRider[ClientResponse]:
+        call_param: Dict[str, Any] = {
+            "method": method,
+            "url": url,
+            "params": params,
+            "data": data,
+            "headers": headers,
+            "cookies": cookies,
+            "timeout": timeout,
+            **kwargs,
+        }
+        return ClientConnectionRider(self, self.service.session.request, call_param)
 
-    async def websocket(self, url: str, **kwargs):
-        connection = await self.service.session.ws_connect(url, **kwargs).__aenter__()
-        return ClientConnectionRider(connection)
+    def websocket(self, url: str, **kwargs) -> ClientConnectionRider[ClientWebSocketResponse]:
+        call_param: Dict[str, Any] = {"url": url, **kwargs}
+        return ClientConnectionRider(self, self.service.session.ws_connect, call_param)
 
 
 class AiohttpService(Service):
     session: ClientSession
-
     supported_interface_types = {AiohttpClientInterface}
 
     def __init__(self, session: Optional[ClientSession] = None) -> None:

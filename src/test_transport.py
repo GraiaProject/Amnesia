@@ -1,6 +1,6 @@
 import asyncio
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientWebSocketResponse
 from loguru import logger
 
 from graia.amnesia.builtins.aiohttp import AiohttpClientInterface, AiohttpService
@@ -22,7 +22,9 @@ from graia.amnesia.transport.common.websocket import (
     WebsocketEndpoint,
     WebsocketReceivedEvent,
 )
+from graia.amnesia.transport.common.websocket.event import WebsocketReconnect
 from graia.amnesia.transport.common.websocket.shortcut import data_type, json_require
+from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.transport.utilles import TransportRegistrar
 
 loop = asyncio.get_event_loop()
@@ -36,6 +38,7 @@ cbr = TransportRegistrar()
 
 @cbr.apply
 class TestWebsocketServer(Transport):
+    c = 0
     cbr.declare(WebsocketEndpoint("/ws_test"))
 
     @cbr.on(WebsocketConnectEvent)
@@ -55,8 +58,10 @@ class TestWebsocketServer(Transport):
     @data_type(bytes)
     async def received_b(self, io: AbstractWebsocketIO, data: bytes):
         logger.success(f"websocket received: {data}")
-        await io.send(f"received bytes!{data!r}")
-        # await io.close()
+        await io.send(f"reply - {data!r}")
+        self.c += 1
+        if self.c >= 2:
+            await io.close()
 
     @cbr.on(WebsocketReceivedEvent)
     @data_type(str)
@@ -76,6 +81,12 @@ cbx = TransportRegistrar()
 
 @cbx.apply
 class TestWsClient(Transport):
+    @cbx.handle(WebsocketReconnect)
+    async def recon(self, rider: TransportRider[str, ClientWebSocketResponse]):
+        await asyncio.sleep(1)
+        logger.warning("reconnecting...")
+        return True
+
     @cbx.on(WebsocketConnectEvent)
     async def connected(self, io: AbstractWebsocketIO):
         logger.info(await io.extra(HttpResponse))
@@ -85,7 +96,7 @@ class TestWsClient(Transport):
     @cbx.on(WebsocketReceivedEvent)
     async def received(self, io: AbstractWebsocketIO, data: bytes):
         logger.success(f"websocket received: {data}")
-        await asyncio.sleep(3)
+        await asyncio.sleep(1)
         await io.send(b"hello!")
 
     @cbx.on(WebsocketCloseEvent)
@@ -101,10 +112,12 @@ async def serve(mgr: LaunchManager):
 
 
 async def conn(mgr: LaunchManager):
-    client = TestWsClient()
+    logger.info("connecting...", style="red")
     ai = mgr.get_interface(AiohttpClientInterface)
-    rider = await ai.websocket("http://localhost:8000/ws_test")
-    await rider.use(client)
+    req_rider = await ai.request("GET", "https://httpbin.org/get")  # a simple httpbin get
+    mgr.rich_console.print(await req_rider.io().response.json())
+    rider = ai.websocket("http://localhost:8000/ws_test")
+    await rider.use(TestWsClient())
 
 
 mgr.new_launch_component("serve", mainline=serve)

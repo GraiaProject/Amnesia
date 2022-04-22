@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from typing import Callable, Final
+from typing import Callable, Final, Generic, Literal, TypeVar, Union
 
 from graia.amnesia.transport.common import http
 from graia.amnesia.transport.common.websocket.io import AbstractWebsocketIO
+from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.transport.signature import TransportSignature
 
 from .event import WebsocketCloseEvent as WebsocketCloseEvent

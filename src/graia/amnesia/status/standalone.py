@@ -34,9 +34,8 @@ class AbstractStandaloneStatus(AbstractStatus, metaclass=ABCMeta):
         ...
 
     @property
-    @abstractmethod
     def required(self) -> Set[str]:
-        ...
+        return set()
 
     @abstractmethod
     def update(self, *args, **kwargs):

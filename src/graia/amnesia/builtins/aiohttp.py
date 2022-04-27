@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import copy
 import weakref
 from functools import partial, reduce
 from typing import (
@@ -22,6 +23,7 @@ from typing_extensions import ParamSpec, Self
 from graia.amnesia.launch.component import LaunchComponent
 from graia.amnesia.launch.interface import ExportInterface
 from graia.amnesia.launch.service import Service
+from graia.amnesia.status.standalone import AbstractStandaloneStatus
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http.extra import HttpResponse
 from graia.amnesia.transport.common.http.io import AbstactClientRequestIO
@@ -48,6 +50,41 @@ from graia.amnesia.transport.exceptions import ConnectionClosed
 from graia.amnesia.transport.interface import TransportIO
 from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.transport.signature import TransportSignature
+
+
+class ConnectionStatus(AbstractStandaloneStatus):
+    def __init__(self) -> None:
+        self.connected: bool = False
+        self._drop_notifier: Optional[asyncio.Future] = None
+
+    @property
+    def available(self) -> bool:
+        return self.connected
+
+    @property
+    def frame(self: Self) -> Self:
+        return copy.copy(self)
+
+    @property
+    def id(self) -> str:
+        return "aiohttp.connection"
+
+    def update(self, connected: bool) -> None:
+        self.connected = connected
+        if self._waiter:
+            self._waiter.set_result(connected)
+
+    async def wait_for_drop(self) -> None:
+        try:
+            if not self._drop_notifier:
+                self._drop_notifier = asyncio.Future()
+            await self._drop_notifier
+        finally:
+            self._drop_notifier = None
+
+    def notify_drop(self) -> None:
+        if self._drop_notifier:
+            self._drop_notifier.set_result(None)
 
 
 class ClientRequestIO(AbstactClientRequestIO):
@@ -134,39 +171,24 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
         self.conn_func = conn_func
         self.call_param = call_param
         self.keep_connection: bool = True
-        self._stat_updater: Optional[asyncio.Event] = None
-        self.connected: bool = False
-        self.connected_sentinel: Optional[asyncio.Future] = None
+        self.status = ConnectionStatus()
         self.autoreceive: bool = False
         self.task = None
         self.connect_task = None
         self.interface = interface
 
-    async def _update_conn(self):
-        if not self._stat_updater:
-            self._stat_updater = asyncio.Event()
-        self._stat_updater.set()
-        self._stat_updater.clear()
-
     async def _connect(self):
         async with self.conn_func(**self.call_param) as resp:
             self.response = resp
-            self.connected = True
-            await self._update_conn()
-            assert self._stat_updater
-            while self.keep_connection:
-                await self._stat_updater.wait()
-            self.connected = False
-            await self._update_conn()
+            self.status.update(True)
+            await self.status.wait_for_drop()
+        self.status.update(False)
 
     async def _start_conn(self) -> Self:
         self.response = None
-        await self._update_conn()  # init self._stat_updater
-        assert self._stat_updater
         if self.connect_task is None:
             self.connect_task = asyncio.create_task(self._connect())
-        while not self.connected:
-            await self._stat_updater.wait()
+        await self.status.wait_for_available()
         return self
 
     def __await__(self):
@@ -185,7 +207,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
             raise TypeError("this rider has just one connection")
         if self.autoreceive:
             raise TypeError("this rider has been taken over by auto receive, use .use(transport) instead.")
-        if not self.connected:
+        if not self.status.connected:
             raise RuntimeError("the connection is not ready, please await the instance to ensure connection")
         assert self.response
         if isinstance(self.response, ClientWebSocketResponse):
@@ -221,12 +243,8 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                     await self.trigger_callbacks(WebsocketCloseEvent, io)
                     if not io.closed:
                         await io.close()
-                    self.keep_connection = False
-                    assert self._stat_updater
-                    await self._update_conn()
-                    while self.connected:
-                        await self._stat_updater.wait()  # drop connection
-                    self.keep_connection = True
+                    self.status.notify_drop()
+                    await self.status.wait_for_unavailable()
                     self.connect_task = None
                 except Exception as e:
                     logger.exception(e)

@@ -5,7 +5,7 @@ from graia.amnesia.status.standalone import AbstractStandaloneStatus
 
 
 class ConnectionStatus(AbstractStandaloneStatus):
-    id: str
+    id: str = ""  # avoid abstract check
     connected: bool = False
     succeed: bool = False
 

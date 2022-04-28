@@ -1,6 +1,5 @@
 import asyncio
 import contextlib
-import copy
 import weakref
 from functools import partial, reduce
 from typing import (
@@ -23,10 +22,10 @@ from typing_extensions import ParamSpec, Self
 from graia.amnesia.launch.component import LaunchComponent
 from graia.amnesia.launch.interface import ExportInterface
 from graia.amnesia.launch.service import Service
-from graia.amnesia.status.standalone import AbstractStandaloneStatus
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http.extra import HttpResponse
 from graia.amnesia.transport.common.http.io import AbstactClientRequestIO
+from graia.amnesia.transport.common.status import ConnectionStatus
 from graia.amnesia.transport.common.websocket.event import (
     WebsocketCloseEvent as WebsocketCloseEvent,
 )
@@ -52,27 +51,12 @@ from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.transport.signature import TransportSignature
 
 
-class ConnectionStatus(AbstractStandaloneStatus):
+class AiohttpConnectionStatus(ConnectionStatus):
     def __init__(self) -> None:
         self.connected: bool = False
+        self.succeed: bool = False
         self._drop_notifier: Optional[asyncio.Future] = None
-
-    @property
-    def available(self) -> bool:
-        return self.connected
-
-    @property
-    def frame(self: Self) -> Self:
-        return copy.copy(self)
-
-    @property
-    def id(self) -> str:
-        return "aiohttp.connection"
-
-    def update(self, connected: bool) -> None:
-        self.connected = connected
-        if self._waiter:
-            self._waiter.set_result(connected)
+        super().__init__("aiohttp.connection")
 
     async def wait_for_drop(self) -> None:
         try:
@@ -171,7 +155,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
         self.conn_func = conn_func
         self.call_param = call_param
         self.keep_connection: bool = True
-        self.status = ConnectionStatus()
+        self.status = AiohttpConnectionStatus()
         self.autoreceive: bool = False
         self.task = None
         self.connect_task = None
@@ -185,10 +169,12 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
         self.status.update(False)
 
     async def _start_conn(self) -> Self:
-        self.response = None
-        if self.connect_task is None:
-            self.connect_task = asyncio.create_task(self._connect())
-        await self.status.wait_for_available()
+        if not self.status.available:
+            self.response = None
+            if self.connect_task is None:
+                self.connect_task = asyncio.create_task(self._connect())
+            await self.status.wait_for_available()
+            self.status.update(succeed=True)
         return self
 
     def __await__(self):

@@ -241,7 +241,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                 for t in continuing_transports:
                     handler = t.get_handler(WebsocketReconnect)
                     if handler:
-                        tsk = asyncio.create_task(handler(self))
+                        tsk = asyncio.create_task(handler(self.status))
                         tsk.add_done_callback(lambda tsk: self.transports.append(t) if tsk.result() is True else None)
                         reconnect_handle_tasks.append(tsk)
                 await asyncio.wait(reconnect_handle_tasks, return_when=asyncio.ALL_COMPLETED)

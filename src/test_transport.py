@@ -15,6 +15,7 @@ from graia.amnesia.launch.manager import LaunchManager
 from graia.amnesia.log import install
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http.extra import HttpRequest, HttpResponse
+from graia.amnesia.transport.common.status import ConnectionStatus
 from graia.amnesia.transport.common.websocket import (
     AbstractWebsocketIO,
     WebsocketCloseEvent,
@@ -82,10 +83,10 @@ cbx = TransportRegistrar()
 @cbx.apply
 class TestWsClient(Transport):
     @cbx.handle(WebsocketReconnect)
-    async def recon(self, rider: TransportRider[str, ClientWebSocketResponse]):
+    async def recon(self, rider: ConnectionStatus):
         await asyncio.sleep(1)
         logger.warning("reconnecting...")
-        return True
+        return rider.succeed
 
     @cbx.on(WebsocketConnectEvent)
     async def connected(self, io: AbstractWebsocketIO):
@@ -94,6 +95,7 @@ class TestWsClient(Transport):
         await io.send(b"hello!")
 
     @cbx.on(WebsocketReceivedEvent)
+    @data_type(bytes)
     async def received(self, io: AbstractWebsocketIO, data: bytes):
         logger.success(f"websocket received: {data}")
         await asyncio.sleep(1)

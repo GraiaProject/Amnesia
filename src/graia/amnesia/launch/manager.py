@@ -100,12 +100,14 @@ class LaunchManager:
         with RichStatus("[dark_orange bold]preparing components...", console=self.rich_console) as status:
             for component_layer in resolve_requirements(set(self.launch_components.values())):
                 tasks = [
-                    asyncio.create_task(component.prepare(self), name=component.id)  # type: ignore
+                    asyncio.create_task(component.prepare(self), name=component.id)
                     for component in component_layer
                     if component.prepare
                 ]
                 for task in tasks:
-                    task.add_done_callback(lambda t: status.update(f"[dark_orange bold]{t.get_name()} prepared."))
+                    task.add_done_callback(
+                        lambda t: status.update(f"[magenta]{t.get_name()}[/magenta] [dark_orange bold]prepared.")
+                    )
                 if tasks:
                     await asyncio.wait(tasks)
             status.update("[dark_orange bold]all launch components prepared.")
@@ -115,12 +117,17 @@ class LaunchManager:
 
         loop = asyncio.get_running_loop()
         tasks = [
-            loop.create_task(component.mainline(self), name=component.id)  # type: ignore
+            loop.create_task(component.mainline(self), name=component.id)
             for component in self.launch_components.values()
             if component.mainline
         ]
         for task in tasks:
-            task.add_done_callback(lambda t: logger.success(f"mainline {t.get_name()} completed."))
+            task.add_done_callback(
+                lambda t: logger.success(
+                    f"mainline {t.get_name()} completed.",
+                    alt=f"mainline [magenta]{t.get_name()}[/magenta] completed.",
+                )
+            )
 
         logger.info(f"mainline count: {len(tasks)}")
         try:
@@ -141,7 +148,12 @@ class LaunchManager:
                 ]
                 if tasks:
                     for task in tasks:
-                        task.add_done_callback(lambda t: logger.success(f"{t.get_name()} cleanup finished."))
+                        task.add_done_callback(
+                            lambda t: logger.success(
+                                f"{t.get_name()} cleanup finished.",
+                                alt=f"[magenta]{t.get_name()}[/magenta] cleanup finished.",
+                            )
+                        )
                     await asyncio.gather(*tasks)
             logger.success("cleanup finished.", style="green bold")
             logger.warning("exiting...", style="red bold")

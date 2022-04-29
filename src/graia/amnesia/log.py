@@ -1,9 +1,12 @@
 import logging
 import sys
+import types
+from datetime import datetime
 from logging import LogRecord
 from types import FrameType, TracebackType
-from typing import Any, Callable, Dict, Optional, Type, cast
+from typing import Any, Callable, Dict, Iterable, List, Optional, Type, Union, cast
 
+import rich
 from loguru import logger
 from loguru._logger import Core
 from rich.console import Console, ConsoleRenderable
@@ -62,6 +65,19 @@ class LoguruRichHandler(RichHandler):
     """
 
     def render_message(self, record: LogRecord, message: str) -> "ConsoleRenderable":
+        # alternative time log
+        time_format = None if self.formatter is None else self.formatter.datefmt
+        time_format = time_format or self._log_render.time_format
+        log_time = datetime.fromtimestamp(record.created)
+        if callable(time_format):
+            log_time_display = time_format(log_time)
+        else:
+            log_time_display = Text(log_time.strftime(time_format))
+        if not (log_time_display == self._log_render._last_time and self._log_render.omit_repeated_times):
+            self.console.print(log_time_display, style="log.time")
+            self._log_render._last_time = log_time_display
+
+        # add extra attrs to record
         extra: dict = getattr(record, "extra", {})
         if "style" in extra:
             record.__dict__.update(highlight(extra["style"]))
@@ -84,12 +100,30 @@ def _loguru_exc_hook(typ: Type[BaseException], val: BaseException, tb: Optional[
     logger.opt(exception=(typ, val, tb)).error("Exception:")
 
 
-def install(rich_console: Console, exc_hook: Optional[ExceptionHook] = _loguru_exc_hook) -> None:
+def install(
+    rich_console: Optional[Console] = None,
+    exc_hook: Optional[ExceptionHook] = _loguru_exc_hook,
+    tb_ctx_lines: int = 3,
+    tb_theme: Optional[str] = None,
+    tb_suppress: Iterable[Union[str, types.ModuleType]] = (),
+    time_format: Union[str, Callable[[datetime], Text]] = "[%x %X]",
+    keywords: Optional[List[str]] = None,
+) -> None:
     """Install Rich logging and Loguru exception hook"""
     logger.configure(
         handlers=[
             {
-                "sink": LoguruRichHandler(console=rich_console, rich_tracebacks=True, tracebacks_show_locals=True),
+                "sink": LoguruRichHandler(
+                    console=rich_console or rich.get_console(),
+                    rich_tracebacks=True,
+                    tracebacks_show_locals=True,
+                    tracebacks_suppress=tb_suppress,
+                    tracebacks_extra_lines=tb_ctx_lines,
+                    tracebacks_theme=tb_theme,
+                    show_time=False,
+                    log_time_format=time_format,
+                    keywords=keywords,
+                ),
                 "format": lambda _: "{message}",
                 "level": 0,
             }

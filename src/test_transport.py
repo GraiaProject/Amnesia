@@ -30,7 +30,7 @@ from graia.amnesia.transport.utilles import TransportRegistrar
 
 loop = asyncio.get_event_loop()
 mgr = LaunchManager()
-mgr.add_service(AiohttpService(ClientSession(loop=loop)))
+mgr.add_service(AiohttpService())
 mgr.add_service(StarletteService())
 mgr.add_service(UvicornService("127.0.0.1", 8000))
 install(mgr.rich_console)
@@ -66,9 +66,8 @@ class TestWebsocketServer(Transport):
 
     @cbr.on(WebsocketReceivedEvent)
     @data_type(str)
-    @json_require
-    async def received(self, io: AbstractWebsocketIO, data: TJson):
-        logger.success(f"websocket received: {data}")
+    async def received(self, io: AbstractWebsocketIO, data: str):
+        logger.success(f"server received: {data}")
         await io.send(f"received!{data!r}")
         # await io.close()
 
@@ -95,9 +94,9 @@ class TestWsClient(Transport):
         await io.send(b"hello!")
 
     @cbx.on(WebsocketReceivedEvent)
-    @data_type(bytes)
-    async def received(self, io: AbstractWebsocketIO, data: bytes):
-        logger.success(f"websocket received: {data}")
+    @data_type(str)
+    async def received(self, io: AbstractWebsocketIO, data: str):
+        logger.success(f"client received: {data}")
         await asyncio.sleep(1)
         await io.send(b"hello!")
 

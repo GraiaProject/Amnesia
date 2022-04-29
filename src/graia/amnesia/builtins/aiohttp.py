@@ -3,6 +3,7 @@ import contextlib
 import weakref
 from functools import partial, reduce
 from typing import (
+    TYPE_CHECKING,
     Any,
     AsyncContextManager,
     Callable,
@@ -15,7 +16,13 @@ from typing import (
     overload,
 )
 
-from aiohttp import ClientResponse, ClientSession, ClientWebSocketResponse, WSMsgType
+from aiohttp import (
+    ClientResponse,
+    ClientSession,
+    ClientTimeout,
+    ClientWebSocketResponse,
+    WSMsgType,
+)
 from loguru import logger
 from typing_extensions import ParamSpec, Self
 
@@ -294,12 +301,20 @@ class AiohttpService(Service):
     supported_interface_types = {AiohttpClientInterface}
 
     def __init__(self, session: Optional[ClientSession] = None) -> None:
-        self.session = session or ClientSession()
+        if TYPE_CHECKING:
+            session = session or ClientSession()
+        self.session = session
 
     def get_interface(self, interface_type):
         if interface_type is AiohttpClientInterface:
             return AiohttpClientInterface(self)
 
+    async def prepare(self, _):
+        if not self.session:
+            self.session = ClientSession(timeout=ClientTimeout(total=None))
+
     @property
     def launch_component(self) -> LaunchComponent:
-        return LaunchComponent("http.universal_client", set(), cleanup=lambda _: self.session.close())
+        return LaunchComponent(
+            "http.universal_client", set(), prepare=self.prepare, cleanup=lambda _: self.session.close()
+        )

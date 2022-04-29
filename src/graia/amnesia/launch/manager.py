@@ -131,7 +131,6 @@ class LaunchManager:
             logger.info("cancelled by user.", style="red bold")
             if not self.sigexit.is_set():
                 self.sigexit.set()
-            raise
         finally:
             logger.info("all mainlines exited, cleanup start.", style="red bold")
             for component_layer in reversed(resolve_requirements(set(self.launch_components.values()))):
@@ -167,11 +166,10 @@ class LaunchManager:
                 signal_handler = None
         else:
             sigint_handler = None
-        try:
-            loop.run_until_complete(launch_task)
-        except asyncio.CancelledError:
-            if sigint_handler is not None and signal.getsignal(signal.SIGINT) is sigint_handler:
-                signal.signal(signal.SIGINT, signal.default_int_handler)
+        loop.run_until_complete(launch_task)
+
+        if sigint_handler is not None and signal.getsignal(signal.SIGINT) is sigint_handler:
+            signal.signal(signal.SIGINT, signal.default_int_handler)
 
     def _on_sigint(self, _, __, main_task: asyncio.Task):
         if not main_task.done():

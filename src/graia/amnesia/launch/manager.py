@@ -91,12 +91,13 @@ class LaunchManager:
         return self._service_interfaces[interface_type].get_interface(interface_type)
 
     async def launch(self):
+        self.sigexit = asyncio.Event()
         for service in self.services:
             logger.info(f"using service: {service.__class__.__name__}")
 
         logger.info(f"launch components count: {len(self.launch_components)}")
 
-        with RichStatus("[orange bold]preparing components...", console=self.rich_console) as status:
+        with RichStatus("[dark_orange bold]preparing components...", console=self.rich_console) as status:
             for component_layer in resolve_requirements(set(self.launch_components.values())):
                 tasks = [
                     asyncio.create_task(component.prepare(self), name=component.id)  # type: ignore
@@ -104,10 +105,10 @@ class LaunchManager:
                     if component.prepare
                 ]
                 for task in tasks:
-                    task.add_done_callback(lambda t: status.update(f"{t.get_name()} prepared."))
+                    task.add_done_callback(lambda t: status.update(f"[dark_orange bold]{t.get_name()} prepared."))
                 if tasks:
                     await asyncio.wait(tasks)
-            status.update("all launch components prepared.")
+            status.update("[dark_orange bold]all launch components prepared.")
             await asyncio.sleep(1)
 
         logger.info("components prepared, switch to mainlines and block main thread.", style="green bold")
@@ -130,6 +131,7 @@ class LaunchManager:
             logger.info("cancelled by user.", style="red bold")
             if not self.sigexit.is_set():
                 self.sigexit.set()
+            raise
         finally:
             logger.info("all mainlines exited, cleanup start.", style="red bold")
             for component_layer in reversed(resolve_requirements(set(self.launch_components.values()))):
@@ -146,12 +148,35 @@ class LaunchManager:
             logger.warning("exiting...", style="red bold")
 
     def launch_blocking(self, *, loop: Optional[asyncio.AbstractEventLoop] = None):
+        import functools
+        import signal
+        import threading
+
         loop = loop or asyncio.new_event_loop()
-        self.sigexit = asyncio.Event(loop=loop)
         launch_task = loop.create_task(self.launch(), name="amnesia-launch")
+        if (
+            threading.current_thread() is threading.main_thread()
+            and signal.getsignal(signal.SIGINT) is signal.default_int_handler
+        ):
+            sigint_handler = functools.partial(self._on_sigint, main_task=launch_task)
+            try:
+                signal.signal(signal.SIGINT, sigint_handler)
+            except ValueError:
+                # `signal.signal` may throw if `threading.main_thread` does
+                # not support signals
+                signal_handler = None
+        else:
+            sigint_handler = None
         try:
             loop.run_until_complete(launch_task)
-        except KeyboardInterrupt:
-            self.sigexit.set()
-            launch_task.cancel()
-            loop.run_until_complete(launch_task)
+        except asyncio.CancelledError:
+            if sigint_handler is not None and signal.getsignal(signal.SIGINT) is sigint_handler:
+                signal.signal(signal.SIGINT, signal.default_int_handler)
+
+    def _on_sigint(self, _, __, main_task: asyncio.Task):
+        if not main_task.done():
+            main_task.cancel()
+            # wakeup loop if it is blocked by select() with long timeout
+            main_task._loop.call_soon_threadsafe(lambda: None)
+            logger.info("Ctrl-C triggered by user.", style="dark_orange bold")
+        self.sigexit.set()

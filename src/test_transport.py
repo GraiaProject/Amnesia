@@ -32,8 +32,9 @@ loop = asyncio.get_event_loop()
 mgr = LaunchManager()
 mgr.add_service(AiohttpService())
 mgr.add_service(StarletteService())
-mgr.add_service(UvicornService("127.0.0.1", 8000))
+mgr.add_service(UvicornService("127.0.0.1", 21447))
 install(mgr.rich_console)
+
 cbr = TransportRegistrar()
 
 
@@ -67,13 +68,13 @@ class TestWebsocketServer(Transport):
     @cbr.on(WebsocketReceivedEvent)
     @data_type(str)
     async def received(self, io: AbstractWebsocketIO, data: str):
-        logger.success(f"server received: {data}")
+        logger.success(f"server <- {data}")
         await io.send(f"received!{data!r}")
         # await io.close()
 
     @cbr.on(WebsocketCloseEvent)
     async def closed(self, io: AbstractWebsocketIO):
-        logger.success("websocket closed!")
+        logger.success("server: closed!")
 
 
 cbx = TransportRegistrar()
@@ -82,27 +83,27 @@ cbx = TransportRegistrar()
 @cbx.apply
 class TestWsClient(Transport):
     @cbx.handle(WebsocketReconnect)
-    async def recon(self, rider: ConnectionStatus):
+    async def recon(self, stat: ConnectionStatus):
         await asyncio.sleep(1)
         logger.warning("reconnecting...")
-        return rider.succeed
+        return stat.succeed
 
     @cbx.on(WebsocketConnectEvent)
     async def connected(self, io: AbstractWebsocketIO):
         logger.info(await io.extra(HttpResponse))
-        logger.success("websocket connected!")
+        logger.success("client: connected!")
         await io.send(b"hello!")
 
     @cbx.on(WebsocketReceivedEvent)
     @data_type(str)
     async def received(self, io: AbstractWebsocketIO, data: str):
-        logger.success(f"client received: {data}")
+        logger.success(f"client <- {data}")
         await asyncio.sleep(1)
         await io.send(b"hello!")
 
     @cbx.on(WebsocketCloseEvent)
     async def closed(self, io: AbstractWebsocketIO):
-        logger.success("websocket closed!")
+        logger.success("client: closed!")
 
 
 async def serve(mgr: LaunchManager):
@@ -115,13 +116,11 @@ async def serve(mgr: LaunchManager):
 async def conn(mgr: LaunchManager):
     logger.info("connecting...", style="red")
     ai = mgr.get_interface(AiohttpClientInterface)
-    req_rider = await ai.request("GET", "https://httpbin.org/get")  # a simple httpbin get
-    mgr.rich_console.print(await req_rider.io().response.json())
-    rider = ai.websocket("http://localhost:8000/ws_test")
+    rider = ai.websocket("http://localhost:21447/ws_test")
     await rider.use(TestWsClient())
 
 
 mgr.new_launch_component("serve", mainline=serve)
-mgr.new_launch_component("conn", {"serve"}, mainline=conn)
+mgr.new_launch_component("conn", set(), mainline=conn)
 
 mgr.launch_blocking(loop=loop)

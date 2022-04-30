@@ -64,6 +64,9 @@ class AiohttpConnectionStatus(ConnectionStatus):
         self.drop: bool = False
         super().__init__("aiohttp.connection")
 
+    def __repr__(self) -> str:
+        return f"<ConnectionStatus {self.connected=:}, {self.succeed=:}, {self.drop=:}, {self._waiter=:}>"
+
     def update(
         self, connected: Optional[bool] = None, succeed: Optional[bool] = None, drop: Optional[bool] = None
     ) -> None:
@@ -74,13 +77,16 @@ class AiohttpConnectionStatus(ConnectionStatus):
             self.succeed = succeed
         if drop is not None:
             self.drop = drop
-        if self._waiter:
+
+        if self._waiter and not self._waiter.done():
+            self._waiter.set_result((past, self))
+        else:
+            self._waiter = asyncio.Future()
             self._waiter.set_result((past, self))
 
     async def wait_for_drop(self) -> None:
-        while self.drop is False:
+        while not self.drop:
             await self.wait_for_update()
-        self.drop = False
 
 
 class ClientRequestIO(AbstactClientRequestIO):
@@ -180,6 +186,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
             self.response = resp
             self.status.update(connected=True)
             await self.status.wait_for_drop()
+            self.status.update(drop=False)
         self.status.update(connected=False)
 
     async def _start_conn(self) -> Self:

@@ -54,7 +54,8 @@ class AbstractStandaloneStatus(AbstractStatus, metaclass=ABCMeta):
                 self._waiter = asyncio.Future()
             await self._waiter
         finally:
-            self._waiter = None
+            if self._waiter and self._waiter.done():
+                self._waiter = None
 
     async def wait_for_available(self):
         while not self.available:

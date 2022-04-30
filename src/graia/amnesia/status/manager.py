@@ -1,11 +1,27 @@
 import asyncio
-from typing import Dict, List, Literal, Optional, Type, TypeVar, Union, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Awaitable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 from weakref import WeakValueDictionary
 
 from .abc import AbstractStatus
 
 T = TypeVar("T", bound=AbstractStatus)
-TWaiterFtr = asyncio.Future  # [Tuple[Optional[AbstractStatus], Optional[AbstractStatus]]]  # type: ignore
+if TYPE_CHECKING:
+    TWaiterFtr = asyncio.Future[Tuple[Optional[AbstractStatus], Optional[AbstractStatus]]]
+else:
+    TWaiterFtr = asyncio.Future
 
 
 class StatusManager:
@@ -55,7 +71,7 @@ class StatusManager:
 
     def _get_waiter(self, target: Union[str, AbstractStatus]) -> Optional[TWaiterFtr]:
         self.exists(target, error=True)
-        return self._waiters.get(target.id if isinstance(target, AbstractStatus) else target, None)  # type: ignore
+        return self._waiters.get(target.id if isinstance(target, AbstractStatus) else target)
 
     def notify_update_callback(
         self,
@@ -126,11 +142,11 @@ class StatusManager:
         ...
 
     @overload
-    def get(self, status_type: Type[T]) -> List[T]:
+    def get(self, status_type: Type[T], map: Literal[False] = False) -> List[T]:
         ...
 
     @overload
-    def get(self, status_type: Type[T], map: Literal[True] = True) -> Dict[str, T]:
+    def get(self, status_type: Type[T], map: Literal[True]) -> Dict[str, T]:
         ...
 
     def get(self, target: Union[str, Type[T]], map: bool = False):  # type: ignore

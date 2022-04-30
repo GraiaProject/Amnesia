@@ -88,12 +88,6 @@ class StarletteRequestIO(AbstractServerRequestIO):
                 self.request.client.port if self.request.client else 0,
             )
 
-    async def headers(self):
-        return dict(self.request.headers)
-
-    async def cookies(self):
-        return self.request.cookies
-
 
 class StarletteWebsocketIO(AbstractWebsocketIO):
     websocket: WebSocket
@@ -112,7 +106,7 @@ class StarletteWebsocketIO(AbstractWebsocketIO):
         else:
             if self.websocket.client_state == WebSocketState.DISCONNECTED:
                 raise ConnectionClosed("Connection closed")
-            raise TypeError("Unknown type of received message" f"{received}")
+            raise TypeError(f"Unknown type of received message {received}")
 
     async def send(self, data: Union[bytes, str]):
         if isinstance(data, str):
@@ -173,7 +167,7 @@ class StarletteWebsocketIO(AbstractWebsocketIO):
 class StarletteRouter(ExportInterface, TransportRider[str, Union[StarletteRequestIO, StarletteWebsocketIO]]):
     def __init__(self, starlette: Starlette):
         self.starlette = starlette
-        self.connections = WeakValueDictionary()  # type: ignore
+        self.connections = WeakValueDictionary()
         self.transports = []
 
     async def http_request_handler(self, handler, request: Request):

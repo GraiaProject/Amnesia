@@ -3,14 +3,13 @@ from typing import Any, Callable, Coroutine, Dict, List, Optional, Set, Type
 
 from loguru import logger
 from rich.console import Console
-from rich.logging import RichHandler
 from rich.status import Status as RichStatus
 from rich.theme import Theme
 
 from graia.amnesia.launch.component import LaunchComponent, resolve_requirements
 from graia.amnesia.launch.interface import ExportInterface
 from graia.amnesia.launch.service import Service, TInterface
-from graia.amnesia.utilles import LoguruRichHandler, priority_strategy
+from graia.amnesia.utilles import priority_strategy
 
 
 class LaunchManager:
@@ -92,45 +91,43 @@ class LaunchManager:
         return self._service_interfaces[interface_type].get_interface(interface_type)
 
     async def launch(self):
-        logger.configure(
-            handlers=[
-                {
-                    "sink": LoguruRichHandler(console=self.rich_console),
-                    "format": "{message}",
-                    "level": 0,
-                }
-            ]
-        )
-
+        self.sigexit = asyncio.Event()
         for service in self.services:
             logger.info(f"using service: {service.__class__.__name__}")
 
         logger.info(f"launch components count: {len(self.launch_components)}")
 
-        with RichStatus("[orange bold]preparing components...", console=self.rich_console) as status:
+        with RichStatus("[dark_orange bold]preparing components...", console=self.rich_console) as status:
             for component_layer in resolve_requirements(set(self.launch_components.values())):
                 tasks = [
-                    asyncio.create_task(component.prepare(self), name=component.id)  # type: ignore
+                    asyncio.create_task(component.prepare(self), name=component.id)
                     for component in component_layer
                     if component.prepare
                 ]
                 for task in tasks:
-                    task.add_done_callback(lambda t: status.update(f"{t.get_name()} prepared."))
+                    task.add_done_callback(
+                        lambda t: status.update(f"[magenta]{t.get_name()}[/magenta] [dark_orange bold]prepared.")
+                    )
                 if tasks:
                     await asyncio.wait(tasks)
-            status.update("all launch components prepared.")
+            status.update("[dark_orange bold]all launch components prepared.")
             await asyncio.sleep(1)
 
-        logger.info("components prepared, switch to mainlines and block main thread.", render_attr="green bold")
+        logger.info("components prepared, switch to mainlines and block main thread.", style="green bold")
 
         loop = asyncio.get_running_loop()
         tasks = [
-            loop.create_task(component.mainline(self), name=component.id)  # type: ignore
+            loop.create_task(component.mainline(self), name=component.id)
             for component in self.launch_components.values()
             if component.mainline
         ]
         for task in tasks:
-            task.add_done_callback(lambda t: logger.success(f"mainline {t.get_name()} completed."))
+            task.add_done_callback(
+                lambda t: logger.success(
+                    f"mainline {t.get_name()} completed.",
+                    alt=f"mainline [magenta]{t.get_name()}[/magenta] completed.",
+                )
+            )
 
         logger.info(f"mainline count: {len(tasks)}")
         try:
@@ -138,31 +135,58 @@ class LaunchManager:
                 self.maintask = loop.create_task(asyncio.wait(tasks))
                 await asyncio.shield(self.maintask)
         except asyncio.CancelledError:
-            logger.info("cancelled by user.", render_attr="red bold")
+            logger.info("cancelled by user.", style="red bold")
             if not self.sigexit.is_set():
                 self.sigexit.set()
         finally:
-            logger.info("all mainlines exited, cleanup start.", render_attr="red bold")
+            logger.info("all mainlines exited, cleanup start.", style="red bold")
             for component_layer in reversed(resolve_requirements(set(self.launch_components.values()))):
                 tasks = [
-                    asyncio.create_task(component.cleanup(self), name=component.id)  # type: ignore
+                    asyncio.create_task(component.cleanup(self), name=component.id)
                     for component in component_layer
                     if component.cleanup
                 ]
                 if tasks:
                     for task in tasks:
-                        task.add_done_callback(lambda t: logger.success(f"{t.get_name()} cleanup finished."))
+                        task.add_done_callback(
+                            lambda t: logger.success(
+                                f"{t.get_name()} cleanup finished.",
+                                alt=f"[magenta]{t.get_name()}[/magenta] cleanup finished.",
+                            )
+                        )
                     await asyncio.gather(*tasks)
-            logger.success("cleanup finished.", render_attr="green bold")
-            logger.warning("exiting...", render_attr="red bold")
+            logger.success("cleanup finished.", style="green bold")
+            logger.warning("exiting...", style="red bold")
 
     def launch_blocking(self, *, loop: Optional[asyncio.AbstractEventLoop] = None):
+        import functools
+        import signal
+        import threading
+
         loop = loop or asyncio.new_event_loop()
-        self.sigexit = asyncio.Event(loop=loop)
         launch_task = loop.create_task(self.launch(), name="amnesia-launch")
-        try:
-            loop.run_until_complete(launch_task)
-        except KeyboardInterrupt:
-            self.sigexit.set()
-            launch_task.cancel()
-            loop.run_until_complete(launch_task)
+        if (
+            threading.current_thread() is threading.main_thread()
+            and signal.getsignal(signal.SIGINT) is signal.default_int_handler
+        ):
+            sigint_handler = functools.partial(self._on_sigint, main_task=launch_task)
+            try:
+                signal.signal(signal.SIGINT, sigint_handler)
+            except ValueError:
+                # `signal.signal` may throw if `threading.main_thread` does
+                # not support signals
+                signal_handler = None
+        else:
+            sigint_handler = None
+        loop.run_until_complete(launch_task)
+
+        if sigint_handler is not None and signal.getsignal(signal.SIGINT) is sigint_handler:
+            signal.signal(signal.SIGINT, signal.default_int_handler)
+
+    def _on_sigint(self, _, __, main_task: asyncio.Task):
+        if not main_task.done():
+            main_task.cancel()
+            # wakeup loop if it is blocked by select() with long timeout
+            main_task._loop.call_soon_threadsafe(lambda: None)
+            logger.info("Ctrl-C triggered by user.", style="dark_orange bold")
+        self.sigexit.set()

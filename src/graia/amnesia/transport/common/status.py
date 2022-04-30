@@ -5,7 +5,7 @@ from graia.amnesia.status.standalone import AbstractStandaloneStatus
 
 
 class ConnectionStatus(AbstractStandaloneStatus):
-    id: str
+    id: str = ""  # avoid abstract check
     connected: bool = False
     succeed: bool = False
 
@@ -13,7 +13,9 @@ class ConnectionStatus(AbstractStandaloneStatus):
         self.id = id
 
     def frame(self):
-        return copy(self)
+        instance = copy(self)
+        instance._waiter = None
+        return instance
 
     @property
     def closed(self) -> bool:

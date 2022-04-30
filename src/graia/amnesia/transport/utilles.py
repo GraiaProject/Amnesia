@@ -1,14 +1,19 @@
 from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Type, TypeVar
 
+from typing_extensions import Concatenate, ParamSpec
+
 from graia.amnesia.transport.signature import TransportSignature
 
 if TYPE_CHECKING:
     from graia.amnesia.transport import Transport
 
-T_TransportHandler = TypeVar("T_TransportHandler", bound=Callable)
+
+P_TransportHandler = ParamSpec("P_TransportHandler")
+
+T_Transport = TypeVar("T_Transport", bound="Transport")
 
 
-class TransportRegistrar(Generic[T_TransportHandler]):
+class TransportRegistrar:
     handlers: Dict[TransportSignature, Callable]
     callbacks: Dict[TransportSignature, List]
     declares: List[TransportSignature[None]]
@@ -18,15 +23,15 @@ class TransportRegistrar(Generic[T_TransportHandler]):
         self.callbacks = {}
         self.declares = []
 
-    def handle(self, signature: TransportSignature[T_TransportHandler]):
-        def decorator(method: T_TransportHandler):
+    def handle(self, signature: TransportSignature[Callable[P_TransportHandler, Any]]):
+        def decorator(method: Callable[Concatenate[T_Transport, P_TransportHandler], Any]):
             self.handlers[signature] = method
             return method
 
         return decorator
 
-    def on(self, signature: TransportSignature[T_TransportHandler]):
-        def decorator(method: T_TransportHandler):
+    def on(self, signature: TransportSignature[Callable[P_TransportHandler, Any]]):
+        def decorator(method: Callable[Concatenate[T_Transport, P_TransportHandler], Any]):
             self.callbacks.setdefault(signature, []).append(method)
             return method
 

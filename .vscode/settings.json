@@ -10,5 +10,6 @@
         "utilles",
         "Uvicorn",
         "yarl"
-    ]
+    ],
+    "python.analysis.typeCheckingMode": "basic",
 }

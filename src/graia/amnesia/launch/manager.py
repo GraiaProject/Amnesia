@@ -142,7 +142,7 @@ class LaunchManager:
             logger.info("all mainlines exited, cleanup start.", style="red bold")
             for component_layer in reversed(resolve_requirements(set(self.launch_components.values()))):
                 tasks = [
-                    asyncio.create_task(component.cleanup(self), name=component.id)  # type: ignore
+                    asyncio.create_task(component.cleanup(self), name=component.id)
                     for component in component_layer
                     if component.cleanup
                 ]

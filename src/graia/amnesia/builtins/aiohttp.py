@@ -1,7 +1,6 @@
 import asyncio
 import contextlib
-import weakref
-from functools import partial, reduce
+from functools import reduce
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -62,20 +61,26 @@ class AiohttpConnectionStatus(ConnectionStatus):
     def __init__(self) -> None:
         self.connected: bool = False
         self.succeed: bool = False
-        self._drop_notifier: Optional[asyncio.Future] = None
+        self.drop: bool = False
         super().__init__("aiohttp.connection")
 
-    async def wait_for_drop(self) -> None:
-        try:
-            if not self._drop_notifier:
-                self._drop_notifier = asyncio.Future()
-            await self._drop_notifier
-        finally:
-            self._drop_notifier = None
+    def update(
+        self, connected: Optional[bool] = None, succeed: Optional[bool] = None, drop: Optional[bool] = None
+    ) -> None:
+        past = self.frame()
+        if connected is not None:
+            self.connected = connected
+        if succeed is not None:
+            self.succeed = succeed
+        if drop is not None:
+            self.drop = drop
+        if self._waiter:
+            self._waiter.set_result((past, self))
 
-    def notify_drop(self) -> None:
-        if self._drop_notifier:
-            self._drop_notifier.set_result(None)
+    async def wait_for_drop(self) -> None:
+        while self.drop is False:
+            await self.wait_for_update()
+        self.drop = False
 
 
 class ClientRequestIO(AbstactClientRequestIO):
@@ -103,6 +108,9 @@ class ClientWebsocketIO(AbstractWebsocketIO):
     def __init__(self, connection: ClientWebSocketResponse) -> None:
         self.connection = connection
 
+    async def cookies(self) -> Dict[str, str]:
+        return {k: v.value for k, v in self.connection._response.cookies.items()}
+
     async def extra(self, signature):
         if signature is WebsocketClose:
             if not self.connection.closed:
@@ -111,7 +119,7 @@ class ClientWebsocketIO(AbstractWebsocketIO):
             return HttpResponse(
                 self.connection._response.status,
                 dict(self.connection._response.request_info.headers),
-                dict(self.connection._response.request_info.url.query),
+                {k: v.value for k, v in self.connection._response.cookies.items()},
                 self.connection._response.request_info.url,
             )
 
@@ -161,7 +169,6 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
         self.response: Optional[T] = None
         self.conn_func = conn_func
         self.call_param = call_param
-        self.keep_connection: bool = True
         self.status = AiohttpConnectionStatus()
         self.autoreceive: bool = False
         self.task = None
@@ -171,9 +178,9 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
     async def _connect(self):
         async with self.conn_func(**self.call_param) as resp:
             self.response = resp
-            self.status.update(True)
+            self.status.update(connected=True)
             await self.status.wait_for_drop()
-        self.status.update(False)
+        self.status.update(connected=False)
 
     async def _start_conn(self) -> Self:
         if not self.status.available:
@@ -236,7 +243,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                     await self.trigger_callbacks(WebsocketCloseEvent, io)
                     if not io.closed:
                         await io.close()
-                    self.status.notify_drop()
+                    self.status.update(drop=True)
                     await self.status.wait_for_unavailable()
                     self.connect_task = None
                 except Exception as e:

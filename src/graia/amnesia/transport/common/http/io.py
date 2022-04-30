@@ -15,11 +15,11 @@ class AbstractServerRequestIO(ReadonlyIO[bytes]):
         raise NotImplementedError
 
     async def headers(self) -> Dict[str, str]:
-        req = await self.extra(HttpRequest)  # type: HttpRequest
+        req: HttpRequest = await self.extra(HttpRequest)
         return req.headers
 
     async def cookies(self) -> Dict[str, str]:
-        req = await self.extra(HttpRequest)  # type: HttpRequest
+        req: HttpRequest = await self.extra(HttpRequest)
         return req.cookies
 
 
@@ -33,9 +33,9 @@ class AbstactClientRequestIO(ReadonlyIO[bytes]):
         raise NotImplementedError
 
     async def headers(self) -> Dict[str, str]:
-        req = await self.extra(HttpResponse)  # type: HttpResponse
+        req: HttpResponse = await self.extra(HttpResponse)
         return req.headers
 
     async def cookies(self) -> Dict[str, str]:
-        req = await self.extra(HttpResponse)  # type: HttpResponse
+        req: HttpResponse = await self.extra(HttpResponse)
         return req.cookies

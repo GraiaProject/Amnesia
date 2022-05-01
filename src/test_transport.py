@@ -3,7 +3,12 @@ import asyncio
 from aiohttp import ClientSession, ClientWebSocketResponse
 from loguru import logger
 
-from graia.amnesia.builtins.aiohttp import AiohttpClientInterface, AiohttpService
+from graia.amnesia.builtins.aiohttp import (
+    AiohttpClientInterface,
+    AiohttpRouter,
+    AiohttpServerService,
+    AiohttpService,
+)
 from graia.amnesia.builtins.starlette import (
     StarletteRouter,
     StarletteServer,
@@ -14,7 +19,12 @@ from graia.amnesia.json import TJson
 from graia.amnesia.launch.manager import LaunchManager
 from graia.amnesia.log import install
 from graia.amnesia.transport import Transport
+from graia.amnesia.transport.common.http import HttpEndpoint
 from graia.amnesia.transport.common.http.extra import HttpRequest, HttpResponse
+from graia.amnesia.transport.common.http.io import (
+    AbstactClientRequestIO,
+    AbstractServerRequestIO,
+)
 from graia.amnesia.transport.common.status import ConnectionStatus
 from graia.amnesia.transport.common.websocket import (
     AbstractWebsocketIO,
@@ -31,8 +41,7 @@ from graia.amnesia.transport.utilles import TransportRegistrar
 loop = asyncio.get_event_loop()
 mgr = LaunchManager()
 mgr.add_service(AiohttpService())
-mgr.add_service(StarletteService())
-mgr.add_service(UvicornService("127.0.0.1", 21447))
+mgr.add_service(AiohttpServerService("127.0.0.1", 21447))
 install(mgr.rich_console)
 
 cbr = TransportRegistrar()
@@ -76,6 +85,11 @@ class TestWebsocketServer(Transport):
     async def closed(self, io: AbstractWebsocketIO):
         logger.success("server: closed!")
 
+    @cbr.handle(HttpEndpoint("/test", ["GET"]))
+    async def test(self, req: AbstractServerRequestIO):
+        logger.success(req)
+        return {"code": 200, "msg": "ok"}
+
 
 cbx = TransportRegistrar()
 
@@ -107,9 +121,8 @@ class TestWsClient(Transport):
 
 
 async def serve(mgr: LaunchManager):
-    i = mgr.get_interface(StarletteRouter)
+    i = mgr.get_interface(AiohttpRouter)
     t = TestWebsocketServer()
-    logger.info(list(t.iter_handlers()))
     i.use(t)
 
 

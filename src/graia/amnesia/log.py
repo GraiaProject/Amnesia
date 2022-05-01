@@ -3,8 +3,8 @@ import sys
 import types
 from datetime import datetime
 from logging import LogRecord
-from types import FrameType, TracebackType
-from typing import Any, Callable, Dict, Iterable, List, Optional, Type, Union, cast
+from types import TracebackType
+from typing import Any, Callable, Dict, Iterable, List, Optional, Type, Union
 
 import rich
 from loguru import logger
@@ -25,8 +25,8 @@ class LoguruHandler(logging.Handler):
             level = str(record.levelno)
 
         frame, depth = logging.currentframe(), 2
-        while frame.f_code.co_filename == logging.__file__:
-            frame = cast(FrameType, frame.f_back)
+        while frame and frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
             depth += 1
 
         logger.opt(depth=depth, exception=record.exc_info).log(
@@ -110,6 +110,7 @@ def install(
     keywords: Optional[List[str]] = None,
 ) -> None:
     """Install Rich logging and Loguru exception hook"""
+    logging.basicConfig(handlers=[LoguruHandler()], level=0)
     logger.configure(
         handlers=[
             {

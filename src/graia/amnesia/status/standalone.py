@@ -49,12 +49,14 @@ class AbstractStandaloneStatus(AbstractStatus, metaclass=ABCMeta):
         return True
 
     async def wait_for_update(self):
+        _waiter: Optional[asyncio.Future] = None
         try:
             if not self._waiter:
                 self._waiter = asyncio.Future()
+            _waiter = self._waiter
             await self._waiter
         finally:
-            if self._waiter and self._waiter.done():
+            if _waiter is self._waiter:  # prevent deleting wrong waiter property
                 self._waiter = None
 
     async def wait_for_available(self):

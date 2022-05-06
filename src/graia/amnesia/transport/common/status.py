@@ -13,6 +13,7 @@ class ConnectionStatus(AbstractStandaloneStatus):
         self.id = id
         super().__init__()
 
+    @property
     def frame(self):
         instance = copy(self)
         del instance._waiters
@@ -27,11 +28,9 @@ class ConnectionStatus(AbstractStandaloneStatus):
         return self.connected
 
     def update(self, connected: Optional[bool] = None, succeed: Optional[bool] = None):
-        past = self.frame()
+        past = self.frame
         if connected is not None:
             self.connected = connected
         if succeed is not None:
             self.succeed = succeed
-        for waiter in self._waiters:
-            if not waiter.done():
-                waiter.set_result((past, self))
+        self.notify(past)

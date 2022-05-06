@@ -80,7 +80,7 @@ class AiohttpConnectionStatus(ConnectionStatus):
     def update(
         self, connected: Optional[bool] = None, succeed: Optional[bool] = None, drop: Optional[bool] = None
     ) -> None:
-        past = self.frame()
+        past = self.frame
         if connected is not None:
             self.connected = connected
         if succeed is not None:
@@ -88,9 +88,7 @@ class AiohttpConnectionStatus(ConnectionStatus):
         if drop is not None:
             self.drop = drop
 
-        for waiter in self._waiters:
-            if not waiter.done():
-                waiter.set_result((past, self))
+        self.notify(past)
 
     async def wait_for_drop(self) -> None:
         while not self.drop:

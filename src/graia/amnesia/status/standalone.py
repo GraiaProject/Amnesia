@@ -2,6 +2,8 @@ import asyncio
 from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, Deque, Optional, Set, TypeVar
 
+from typing_extensions import Self
+
 from graia.amnesia.status.abc import AbstractStatus
 from graia.amnesia.status.manager import TWaiterFtr
 
@@ -37,6 +39,11 @@ class AbstractStandaloneStatus(AbstractStatus, metaclass=ABCMeta):
     @property
     def required(self) -> Set[str]:
         return set()
+
+    def notify(self, past: Self):
+        for waiter in self._waiters:
+            if not waiter.done():
+                waiter.set_result((past, self.frame))
 
     @abstractmethod
     def update(self, *args, **kwargs):

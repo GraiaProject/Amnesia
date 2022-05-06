@@ -122,12 +122,21 @@ class LaunchManager:
             if component.mainline
         ]
         for task in tasks:
-            task.add_done_callback(
-                lambda t: logger.success(
-                    f"mainline {t.get_name()} completed.",
-                    alt=f"mainline [magenta]{t.get_name()}[/magenta] completed.",
-                )
-            )
+
+            def cb(t: asyncio.Task):
+                exc = t.exception()
+                if exc:
+                    logger.opt(exception=exc).error(
+                        f"mainline {t.get_name()} failed.",
+                        alt=f"[red bold]mainline [magenta]{t.get_name()}[/magenta] failed.",
+                    )
+                else:
+                    logger.success(
+                        f"mainline {t.get_name()} completed.",
+                        alt=f"mainline [magenta]{t.get_name()}[/magenta] completed.",
+                    )
+
+            task.add_done_callback(cb)
 
         logger.info(f"mainline count: {len(tasks)}")
         try:

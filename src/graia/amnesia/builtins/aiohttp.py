@@ -75,7 +75,7 @@ class AiohttpConnectionStatus(ConnectionStatus):
         super().__init__("aiohttp.connection")
 
     def __repr__(self) -> str:
-        return f"<ConnectionStatus {self.connected=:}, {self.succeed=:}, {self.drop=:}, {self._waiter=:}>"
+        return f"<ConnectionStatus {self.connected=:}, {self.succeed=:}, {self.drop=:}, {self._waiters=:}>"
 
     def update(
         self, connected: Optional[bool] = None, succeed: Optional[bool] = None, drop: Optional[bool] = None
@@ -88,11 +88,9 @@ class AiohttpConnectionStatus(ConnectionStatus):
         if drop is not None:
             self.drop = drop
 
-        if self._waiter and not self._waiter.done():
-            self._waiter.set_result((past, self))
-        else:
-            self._waiter = asyncio.Future()
-            self._waiter.set_result((past, self))
+        for waiter in self._waiters:
+            if not waiter.done():
+                waiter.set_result((past, self))
 
     async def wait_for_drop(self) -> None:
         while not self.drop:

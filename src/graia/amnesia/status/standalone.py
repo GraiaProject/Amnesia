@@ -1,6 +1,6 @@
 import asyncio
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING, Optional, Set, TypeVar
+from typing import TYPE_CHECKING, Deque, Optional, Set, TypeVar
 
 from graia.amnesia.status.abc import AbstractStatus
 from graia.amnesia.status.manager import TWaiterFtr
@@ -14,7 +14,8 @@ T = TypeVar("T")
 class AbstractStandaloneStatus(AbstractStatus, metaclass=ABCMeta):
     _manager = None
 
-    _waiter: Optional[TWaiterFtr] = None
+    def __init__(self) -> None:
+        self._waiters: Deque[TWaiterFtr] = Deque()
 
     @property
     def _internal_ready(self):
@@ -49,15 +50,12 @@ class AbstractStandaloneStatus(AbstractStatus, metaclass=ABCMeta):
         return True
 
     async def wait_for_update(self):
-        _waiter: Optional[asyncio.Future] = None
+        waiter = asyncio.Future()
+        self._waiters.append(waiter)
         try:
-            if not self._waiter:
-                self._waiter = asyncio.Future()
-            _waiter = self._waiter
-            await self._waiter
+            return await waiter
         finally:
-            if _waiter is self._waiter:  # prevent deleting wrong waiter property
-                self._waiter = None
+            self._waiters.remove(waiter)
 
     async def wait_for_available(self):
         while not self.available:

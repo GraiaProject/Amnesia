@@ -5,7 +5,7 @@ license = "MIT"
 name = "graia-amnesia"
 packages = [{include = "graia", from = "src"}]
 readme = "README.md"
-version = "0.3.0"
+version = "0.4.0"
 
 [tool.poetry.dependencies]
 loguru = "^0.6.0"

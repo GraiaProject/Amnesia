@@ -11,10 +11,12 @@ class ConnectionStatus(AbstractStandaloneStatus):
 
     def __init__(self, id: str) -> None:
         self.id = id
+        super().__init__()
 
+    @property
     def frame(self):
         instance = copy(self)
-        instance._waiter = None
+        del instance._waiters
         return instance
 
     @property
@@ -26,10 +28,9 @@ class ConnectionStatus(AbstractStandaloneStatus):
         return self.connected
 
     def update(self, connected: Optional[bool] = None, succeed: Optional[bool] = None):
-        past = self.frame()
+        past = self.frame
         if connected is not None:
             self.connected = connected
         if succeed is not None:
             self.succeed = succeed
-        if self._waiter:
-            self._waiter.set_result((past, self))
+        self.notify(past)

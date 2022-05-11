@@ -226,6 +226,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
         if not self.status.connected:
             raise RuntimeError("the connection is not ready, please await the instance to ensure connection")
         assert self.response
+        self.status.update(drop=True)
         if isinstance(self.response, ClientWebSocketResponse):
             return ClientWebsocketIO(self.response)
         elif isinstance(self.response, ClientResponse):

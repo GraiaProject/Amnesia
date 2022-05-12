@@ -29,6 +29,7 @@ from aiohttp import (
 from loguru import logger
 from typing_extensions import ParamSpec, Self
 
+from graia.amnesia.json import Json, TJson
 from graia.amnesia.launch.component import LaunchComponent
 from graia.amnesia.launch.interface import ExportInterface
 from graia.amnesia.launch.service import Service
@@ -299,12 +300,16 @@ class AiohttpClientInterface(ExportInterface["AiohttpService"]):
         method: str,
         url: str,
         params: Optional[dict] = None,
-        data: Optional[dict] = None,
+        data: Optional[Any] = None,
         headers: Optional[dict] = None,
         cookies: Optional[dict] = None,
         timeout: Optional[float] = None,
+        *,
+        json: Optional[TJson] = None,
         **kwargs: Any,
     ) -> ClientConnectionRider[ClientResponse]:
+        if json:
+            data = Json.serialize(json)
         call_param: Dict[str, Any] = {
             "method": method,
             "url": url,

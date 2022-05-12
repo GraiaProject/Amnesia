@@ -255,11 +255,9 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                     ), f"{self.response} is not a ClientWebSocketResponse"
                     io = ClientWebsocketIO(self.response)
                     await self.trigger_callbacks(WebsocketConnectEvent, io)
-                    try:
+                    with contextlib.suppress(ConnectionClosed):
                         async for data in io.packets():
                             await self.trigger_callbacks(WebsocketReceivedEvent, io, data)
-                    except ConnectionClosed:
-                        pass
                     await self.trigger_callbacks(WebsocketCloseEvent, io)
                     if not io.closed:
                         await io.close()
@@ -386,24 +384,23 @@ class AiohttpServerWebsocketIO(AbstractWebsocketIO):
 
     async def receive(self) -> Union[str, bytes]:
         received = await self.websocket.receive()
-        if received.type in (web.WSMsgType.BINARY, web.WSMsgType.BINARY):
+        if received.type in (web.WSMsgType.BINARY, web.WSMsgType.BINARY, web.WSMsgType.TEXT):
             return received.data
-        else:
-            if received.type in (web.WSMsgType.CLOSE, web.WSMsgType.CLOSING, web.WSMsgType.CLOSED):
-                self.ready.clear()
-                raise ConnectionClosed("Connection closed")
-            elif received.type is web.WSMsgType.ERROR:
-                exc = self.websocket.exception()
-                raise ConnectionClosed("Websocket Error") from exc
-            raise TypeError(f"Unknown type of received message {received}")
+        if received.type in (web.WSMsgType.CLOSE, web.WSMsgType.CLOSING, web.WSMsgType.CLOSED):
+            self.ready.clear()
+            raise ConnectionClosed("Connection closed")
+        elif received.type is web.WSMsgType.ERROR:
+            exc = self.websocket.exception()
+            raise ConnectionClosed("Websocket Error") from exc
+        raise TypeError(f"Unknown type of received message {received}")
 
-    async def send(self, data: Union[str, bytes]):
+    async def send(self, data: Union[str, bytes, Any]):
         if isinstance(data, str):
             await self.websocket.send_str(data)
         elif isinstance(data, bytes):
             await self.websocket.send_bytes(data)
         else:
-            raise TypeError("Unknown type of data to send")
+            await self.websocket.send_json(data)
 
     async def extra(self, signature):
         if signature is HttpRequest:
@@ -489,7 +486,6 @@ class AiohttpRouter(
         websocket_io = AiohttpServerWebsocketIO(request)
         conn_id = random_id()
         self.connections[conn_id] = websocket_io
-        await websocket_io.accept()
         await self.trigger_callbacks(WebsocketConnectEvent, websocket_io)
         if websocket_io.closed:
             return websocket_io.websocket

@@ -6,12 +6,12 @@ from logging import LogRecord
 from types import TracebackType
 from typing import Any, Callable, Dict, Iterable, List, Optional, Type, Union
 
-import rich
 from loguru import logger
 from loguru._logger import Core
 from rich.console import Console, ConsoleRenderable
 from rich.logging import RichHandler
 from rich.text import Text
+from rich.theme import Theme
 
 for lv in Core().levels.values():
     logging.addLevelName(lv.no, lv.name)
@@ -115,7 +115,15 @@ def install(
         handlers=[
             {
                 "sink": LoguruRichHandler(
-                    console=rich_console or rich.get_console(),
+                    console=rich_console
+                    or Console(
+                        theme=Theme(
+                            {
+                                "logging.level.success": "green",
+                                "logging.level.trace": "bright_black",
+                            }
+                        )
+                    ),
                     rich_tracebacks=True,
                     tracebacks_show_locals=True,
                     tracebacks_suppress=tb_suppress,

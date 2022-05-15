@@ -54,7 +54,7 @@ class StatusManager:
             for ftr in self._waiters[target_id]:
                 if not ftr.cancelled() or not ftr.done():
                     ftr.cancel()
-            del self._waiters[target_id]
+            self._waiters[target_id].clear()
 
     def _get_required(self, target: Union[AbstractStatus, str]):
         if isinstance(target, AbstractStatus):
@@ -74,7 +74,7 @@ class StatusManager:
         for ftr in self._waiters[status.id]:
             if not ftr.cancelled() and not ftr.done():
                 ftr.set_result((past, status))
-        del self._waiters[status.id]
+        self._waiters[status.id].clear()
         self.notify_update_callback(status.id, past, status)
 
     def exists(self, target: Union[AbstractStatus, str], *, error: bool = False):

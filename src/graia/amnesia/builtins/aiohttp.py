@@ -382,14 +382,13 @@ class AiohttpServerWebsocketIO(AbstractWebsocketIO):
         received = await self.websocket.receive()
         if received.type in (web.WSMsgType.BINARY, web.WSMsgType.BINARY):
             return received.data
-        else:
-            if received.type in (web.WSMsgType.CLOSE, web.WSMsgType.CLOSING, web.WSMsgType.CLOSED):
-                self.ready.clear()
-                raise ConnectionClosed("Connection closed")
-            elif received.type is web.WSMsgType.ERROR:
-                exc = self.websocket.exception()
-                raise ConnectionClosed("Websocket Error") from exc
-            raise TypeError(f"Unknown type of received message {received}")
+        elif received.type in (web.WSMsgType.CLOSE, web.WSMsgType.CLOSING, web.WSMsgType.CLOSED):
+            self.ready.clear()
+            raise ConnectionClosed("Connection closed")
+        elif received.type is web.WSMsgType.ERROR:
+            exc = self.websocket.exception()
+            raise ConnectionClosed("Websocket Error") from exc
+        raise TypeError(f"Unknown type of received message {received}")
 
     async def send(self, data: Union[str, bytes]):
         if isinstance(data, str):

@@ -3,7 +3,6 @@ from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, Optional, Set, TypeVar
 
 from graia.amnesia.status.abc import AbstractStatus
-from graia.amnesia.status.manager import TWaiterFtr
 
 if TYPE_CHECKING:
     from .manager import StatusManager

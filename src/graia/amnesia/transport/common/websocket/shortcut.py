@@ -14,7 +14,7 @@ T = TypeVar("T", bytes, str)
 def data_type(type: Type[T], error: bool = False):
     def decorator(func: Callable[[Any, "AbstractWebsocketIO", T], Any]):
         @wraps(func)
-        async def wrapper(self, io, data: T):
+        async def wrapper(self, io, data: Any):
             if isinstance(data, type):
                 return await func(self, io, data)
             elif error:

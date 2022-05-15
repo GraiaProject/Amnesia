@@ -1,5 +1,5 @@
 import abc
-from typing import Dict, Generic, List, Optional, Type, TypeVar, overload
+from typing import Generic, List, MutableMapping, Optional, Type, TypeVar, overload
 
 from graia.amnesia.transport import Transport
 
@@ -8,7 +8,7 @@ V = TypeVar("V")
 
 
 class TransportRider(Generic[K, V], metaclass=abc.ABCMeta):
-    connections: Dict[K, V]
+    connections: MutableMapping[K, V]
     transports: List[Transport]
 
     @abc.abstractmethod

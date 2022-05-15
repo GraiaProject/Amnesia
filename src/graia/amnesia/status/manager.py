@@ -119,11 +119,11 @@ class StatusManager:
         ...
 
     @overload
-    def get(self, status_type: Type[T]) -> List[T]:
+    def get(self, status_type: Type[T], map: Literal[False] = False) -> List[T]:
         ...
 
     @overload
-    def get(self, status_type: Type[T], map: Literal[True] = True) -> Dict[str, T]:
+    def get(self, status_type: Type[T], map: Literal[True]) -> Dict[str, T]:
         ...
 
     def get(self, target: Union[str, Type[T]], map: bool = False):  # type: ignore

@@ -383,8 +383,11 @@ class AiohttpServerWebsocketIO(AbstractWebsocketIO):
         self.ready = asyncio.Event()
 
     async def receive(self) -> Union[str, bytes]:
-        received = await self.websocket.receive()
-        if received.type in (web.WSMsgType.BINARY, web.WSMsgType.BINARY, web.WSMsgType.TEXT):
+        try:
+            received = await self.websocket.receive()
+        except asyncio.CancelledError as e:
+            raise ConnectionClosed("Cancelled") from e
+        if received.type in (web.WSMsgType.BINARY, web.WSMsgType.TEXT):
             return received.data
         if received.type in (web.WSMsgType.CLOSE, web.WSMsgType.CLOSING, web.WSMsgType.CLOSED):
             self.ready.clear()
@@ -489,11 +492,11 @@ class AiohttpRouter(
         await self.trigger_callbacks(WebsocketConnectEvent, websocket_io)
         if websocket_io.closed:
             return websocket_io.websocket
-        try:
+        with contextlib.suppress(ConnectionClosed):
             async for message in websocket_io.packets():
                 await self.trigger_callbacks(WebsocketReceivedEvent, websocket_io, message)
-        except ConnectionClosed:
-            await self.trigger_callbacks(WebsocketCloseEvent, websocket_io)
+        await self.trigger_callbacks(WebsocketCloseEvent, websocket_io)
+        await websocket_io.close()
         return websocket_io.websocket
 
     async def trigger_callbacks(self, event, *args, **kwargs):

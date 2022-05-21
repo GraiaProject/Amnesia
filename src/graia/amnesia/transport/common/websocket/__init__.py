@@ -8,6 +8,7 @@ from graia.amnesia.transport.signature import TransportSignature
 from .event import WebsocketCloseEvent as WebsocketCloseEvent
 from .event import WebsocketConnectEvent as WebsocketConnectEvent
 from .event import WebsocketReceivedEvent as WebsocketReceivedEvent
+from .event import WebsocketReconnect as WebsocketReconnect
 from .io import AbstractWebsocketIO as AbstractWebsocketIO
 from .operator import WSConnectionAccept as WSConnectionAccept
 from .operator import WSConnectionClose as WSConnectionClose

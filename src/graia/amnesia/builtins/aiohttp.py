@@ -18,6 +18,7 @@ from typing import (
 )
 from weakref import WeakValueDictionary
 
+import aiohttp
 from aiohttp import (
     ClientResponse,
     ClientSession,
@@ -204,7 +205,14 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
             self.response = None
             if self.connect_task is None:
                 self.connect_task = asyncio.create_task(self._connect())
-            await self.status.wait_for_available()
+            await asyncio.wait(
+                (self.status.wait_for_available(), self.connect_task), return_when=asyncio.FIRST_COMPLETED
+            )
+            if self.connect_task.done():
+                exc = self.connect_task.exception()
+                self.connect_task = None
+                if exc:
+                    raise exc
             self.status.update(succeed=True)
         return self
 
@@ -264,6 +272,8 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                     self.status.update(drop=True)
                     await self.status.wait_for_unavailable()
                     self.connect_task = None
+                except aiohttp.ClientConnectionError as e:
+                    logger.warning(repr(e))
                 except Exception as e:
                     logger.exception(e)
                 # scan transports
@@ -271,12 +281,13 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                 self.transports = []
                 reconnect_handle_tasks = []
                 for t in continuing_transports:
-                    handler = t.get_handler(WebsocketReconnect)
-                    if handler:
+                    if t.has_handler(WebsocketReconnect):
+                        handler = t.get_handler(WebsocketReconnect)
                         tsk = asyncio.create_task(handler(self.status))
                         tsk.add_done_callback(lambda tsk: self.transports.append(t) if tsk.result() is True else None)
                         reconnect_handle_tasks.append(tsk)
-                await asyncio.wait(reconnect_handle_tasks)
+                if reconnect_handle_tasks:
+                    await asyncio.wait(reconnect_handle_tasks)
         self.transports = __original_transports
 
     def use(self, transport: Transport):

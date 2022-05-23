@@ -18,6 +18,7 @@ from typing import (
 )
 from weakref import WeakValueDictionary
 
+import aiohttp
 from aiohttp import (
     ClientResponse,
     ClientSession,
@@ -29,6 +30,7 @@ from aiohttp import (
 from loguru import logger
 from typing_extensions import ParamSpec, Self
 
+from graia.amnesia.json import Json, TJson
 from graia.amnesia.launch.component import LaunchComponent
 from graia.amnesia.launch.interface import ExportInterface
 from graia.amnesia.launch.service import Service
@@ -203,7 +205,14 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
             self.response = None
             if self.connect_task is None:
                 self.connect_task = asyncio.create_task(self._connect())
-            await self.status.wait_for_available()
+            await asyncio.wait(
+                (self.status.wait_for_available(), self.connect_task), return_when=asyncio.FIRST_COMPLETED
+            )
+            if self.connect_task.done():
+                exc = self.connect_task.exception()
+                self.connect_task = None
+                if exc:
+                    raise exc
             self.status.update(succeed=True)
         return self
 
@@ -226,6 +235,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
         if not self.status.connected:
             raise RuntimeError("the connection is not ready, please await the instance to ensure connection")
         assert self.response
+        self.status.update(drop=True)
         if isinstance(self.response, ClientWebSocketResponse):
             return ClientWebsocketIO(self.response)
         elif isinstance(self.response, ClientResponse):
@@ -253,17 +263,17 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                     ), f"{self.response} is not a ClientWebSocketResponse"
                     io = ClientWebsocketIO(self.response)
                     await self.trigger_callbacks(WebsocketConnectEvent, io)
-                    try:
+                    with contextlib.suppress(ConnectionClosed):
                         async for data in io.packets():
                             await self.trigger_callbacks(WebsocketReceivedEvent, io, data)
-                    except ConnectionClosed:
-                        pass
                     await self.trigger_callbacks(WebsocketCloseEvent, io)
                     if not io.closed:
                         await io.close()
                     self.status.update(drop=True)
                     await self.status.wait_for_unavailable()
                     self.connect_task = None
+                except aiohttp.ClientConnectionError as e:
+                    logger.warning(repr(e))
                 except Exception as e:
                     logger.exception(e)
                 # scan transports
@@ -271,12 +281,13 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                 self.transports = []
                 reconnect_handle_tasks = []
                 for t in continuing_transports:
-                    handler = t.get_handler(WebsocketReconnect)
-                    if handler:
+                    if t.has_handler(WebsocketReconnect):
+                        handler = t.get_handler(WebsocketReconnect)
                         tsk = asyncio.create_task(handler(self.status))
                         tsk.add_done_callback(lambda tsk: self.transports.append(t) if tsk.result() is True else None)
                         reconnect_handle_tasks.append(tsk)
-                await asyncio.wait(reconnect_handle_tasks)
+                if reconnect_handle_tasks:
+                    await asyncio.wait(reconnect_handle_tasks)
         self.transports = __original_transports
 
     def use(self, transport: Transport):
@@ -298,12 +309,16 @@ class AiohttpClientInterface(ExportInterface["AiohttpService"]):
         method: str,
         url: str,
         params: Optional[dict] = None,
-        data: Optional[dict] = None,
+        data: Optional[Any] = None,
         headers: Optional[dict] = None,
         cookies: Optional[dict] = None,
         timeout: Optional[float] = None,
+        *,
+        json: Optional[TJson] = None,
         **kwargs: Any,
     ) -> ClientConnectionRider[ClientResponse]:
+        if json:
+            data = Json.serialize(json)
         call_param: Dict[str, Any] = {
             "method": method,
             "url": url,
@@ -379,8 +394,11 @@ class AiohttpServerWebsocketIO(AbstractWebsocketIO):
         self.ready = asyncio.Event()
 
     async def receive(self) -> Union[str, bytes]:
-        received = await self.websocket.receive()
-        if received.type in (web.WSMsgType.BINARY, web.WSMsgType.BINARY):
+        try:
+            received = await self.websocket.receive()
+        except asyncio.CancelledError as e:
+            raise ConnectionClosed("Cancelled") from e
+        if received.type in (web.WSMsgType.BINARY, web.WSMsgType.TEXT):
             return received.data
         elif received.type in (web.WSMsgType.CLOSE, web.WSMsgType.CLOSING, web.WSMsgType.CLOSED):
             self.ready.clear()
@@ -390,13 +408,13 @@ class AiohttpServerWebsocketIO(AbstractWebsocketIO):
             raise ConnectionClosed("Websocket Error") from exc
         raise TypeError(f"Unknown type of received message {received}")
 
-    async def send(self, data: Union[str, bytes]):
+    async def send(self, data: Union[str, bytes, Any]):
         if isinstance(data, str):
             await self.websocket.send_str(data)
         elif isinstance(data, bytes):
             await self.websocket.send_bytes(data)
         else:
-            raise TypeError("Unknown type of data to send")
+            await self.websocket.send_json(data)
 
     async def extra(self, signature):
         if signature is HttpRequest:
@@ -482,15 +500,14 @@ class AiohttpRouter(
         websocket_io = AiohttpServerWebsocketIO(request)
         conn_id = random_id()
         self.connections[conn_id] = websocket_io
-        await websocket_io.accept()
         await self.trigger_callbacks(WebsocketConnectEvent, websocket_io)
         if websocket_io.closed:
             return websocket_io.websocket
-        try:
+        with contextlib.suppress(ConnectionClosed):
             async for message in websocket_io.packets():
                 await self.trigger_callbacks(WebsocketReceivedEvent, websocket_io, message)
-        except ConnectionClosed:
-            await self.trigger_callbacks(WebsocketCloseEvent, websocket_io)
+        await self.trigger_callbacks(WebsocketCloseEvent, websocket_io)
+        await websocket_io.close()
         return websocket_io.websocket
 
     async def trigger_callbacks(self, event, *args, **kwargs):

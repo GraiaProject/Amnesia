@@ -400,7 +400,7 @@ class AiohttpServerWebsocketIO(AbstractWebsocketIO):
             raise ConnectionClosed("Cancelled") from e
         if received.type in (web.WSMsgType.BINARY, web.WSMsgType.TEXT):
             return received.data
-        if received.type in (web.WSMsgType.CLOSE, web.WSMsgType.CLOSING, web.WSMsgType.CLOSED):
+        elif received.type in (web.WSMsgType.CLOSE, web.WSMsgType.CLOSING, web.WSMsgType.CLOSED):
             self.ready.clear()
             raise ConnectionClosed("Connection closed")
         elif received.type is web.WSMsgType.ERROR:

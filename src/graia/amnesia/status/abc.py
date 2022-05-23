@@ -49,7 +49,7 @@ class AbstractStatus(metaclass=ABCMeta):
         assert self._manager is not None
         ftr = self._manager._get_waiter(self)
         if not ftr:
-            ftr = self._manager._ensure_waiter(self)
+            ftr = self._manager._get_waiter(self)
         await ftr
 
     async def wait_for_available(self):

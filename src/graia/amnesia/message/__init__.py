@@ -1,5 +1,7 @@
 from copy import deepcopy
-from typing import TYPE_CHECKING, Iterable, List, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Iterable, Iterator, List, Type, TypeVar, Union
+
+from typing_extensions import Self
 
 from .element import Element, Text
 
@@ -105,7 +107,7 @@ class MessageChain:
         """
         return "".join(str(i) for i in self.content)
 
-    def join(self, *chains: Union["MessageChain", Iterable["MessageChain"]]) -> "MessageChain":
+    def join(self, *chains: Union[Self, Iterable[Self]]) -> Self:
         """将多个消息链连接起来, 并在其中插入自身.
 
         Args:
@@ -138,7 +140,7 @@ class MessageChain:
         else:
             raise NotImplementedError("{0} is not allowed for item getting".format(type(item)))
 
-    def merge(self) -> "MessageChain":
+    def merge(self) -> Self:
         """合并相邻的 Text 项, 并返回一个新的消息链实例
         Returns:
             MessageChain: 得到的新的消息链实例, 里面不应存在有任何的相邻的 Text 元素.
@@ -161,7 +163,7 @@ class MessageChain:
             texts.clear()  # 清空缓存
         return MessageChain(result)
 
-    def exclude(self, *types: Type[Element]) -> "MessageChain":
+    def exclude(self, *types: Type[Element]) -> Self:
         """将除了在给出的消息元素类型中符合的消息元素重新包装为一个新的消息链
         Args:
             *types (Type[Element]): 将排除在外的消息元素类型
@@ -170,7 +172,7 @@ class MessageChain:
         """
         return MessageChain([i for i in self.content if not isinstance(i, types)])
 
-    def include(self, *types: Type[Element]) -> "MessageChain":
+    def include(self, *types: Type[Element]) -> Self:
         """将只在给出的消息元素类型中符合的消息元素重新包装为一个新的消息链
         Args:
             *types (Type[Element]): 将只包含在内的消息元素类型
@@ -179,7 +181,7 @@ class MessageChain:
         """
         return MessageChain([i for i in self.content if isinstance(i, types)])
 
-    def split(self, pattern: str, raw_string: bool = False) -> List["MessageChain"]:
+    def split(self, pattern: str, raw_string: bool = False) -> List[Self]:
         """和 `str.split` 差不多, 提供一个字符串, 然后返回分割结果.
 
         Args:
@@ -187,11 +189,11 @@ class MessageChain:
             raw_string (bool): 是否要包含 "空" 的文本元素.
 
         Returns:
-            List["MessageChain"]: 分割结果, 行为和 `str.split` 差不多.
+            List[Self]: 分割结果, 行为和 `str.split` 差不多.
         """
         from .element import Text
 
-        result: List["MessageChain"] = []
+        result: List[Self] = []
         tmp = []
         for element in self.content:
             if isinstance(element, Text):
@@ -212,7 +214,7 @@ class MessageChain:
     def __repr__(self) -> str:
         return f"MessageChain({repr(self.content)})"
 
-    def __iter__(self) -> Iterable[Element]:
+    def __iter__(self) -> Iterator[Element]:
         yield from self.content
 
     def startswith(self, string: str) -> bool:
@@ -256,7 +258,7 @@ class MessageChain:
         """
         return all(isinstance(i, element_classes) for i in self.content)
 
-    def append(self, element: Union[Element, str], copy: bool = False) -> "MessageChain":
+    def append(self, element: Union[Element, str], copy: bool = False) -> Self:
         """
         向消息链最后追加单个元素
 
@@ -275,9 +277,9 @@ class MessageChain:
 
     def extend(
         self,
-        *content: Union["MessageChain", Element, List[Union[Element, str]]],
+        *content: Union[Self, Element, List[Union[Element, str]]],
         copy: bool = False,
-    ) -> "MessageChain":
+    ) -> Self:
         """
         向消息链最后添加元素/元素列表/消息链
 
@@ -307,7 +309,7 @@ class MessageChain:
         self.content.extend(result)
         return self
 
-    def copy(self) -> "MessageChain":
+    def copy(self) -> Self:
         """
         拷贝本消息链.
 

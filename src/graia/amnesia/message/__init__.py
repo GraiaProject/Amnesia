@@ -128,7 +128,7 @@ class MessageChain:
             if chain is not chains[0]:
                 result.extend(deepcopy(self.content))
             result.extend(deepcopy(chain.content))
-        return MessageChain(result).merge()
+        return self.__class__(result).merge()
 
     __contains__ = has
 
@@ -161,7 +161,7 @@ class MessageChain:
         if texts:
             result.append(Text("".join(texts)))
             texts.clear()  # 清空缓存
-        return MessageChain(result)
+        return self.__class__(result)
 
     def exclude(self, *types: Type[Element]) -> Self:
         """将除了在给出的消息元素类型中符合的消息元素重新包装为一个新的消息链
@@ -170,7 +170,7 @@ class MessageChain:
         Returns:
             MessageChain: 返回的消息链中不包含参数中给出的消息元素类型
         """
-        return MessageChain([i for i in self.content if not isinstance(i, types)])
+        return self.__class__([i for i in self.content if not isinstance(i, types)])
 
     def include(self, *types: Type[Element]) -> Self:
         """将只在给出的消息元素类型中符合的消息元素重新包装为一个新的消息链
@@ -179,7 +179,7 @@ class MessageChain:
         Returns:
             MessageChain: 返回的消息链中只包含参数中给出的消息元素类型
         """
-        return MessageChain([i for i in self.content if isinstance(i, types)])
+        return self.__class__([i for i in self.content if isinstance(i, types)])
 
     def split(self, pattern: str, raw_string: bool = False) -> List[Self]:
         """和 `str.split` 差不多, 提供一个字符串, 然后返回分割结果.
@@ -200,14 +200,14 @@ class MessageChain:
                 split_result = element.text.split(pattern)
                 for index, split_str in enumerate(split_result):
                     if tmp and index > 0:
-                        result.append(MessageChain(tmp))
+                        result.append(self.__class__(tmp))
                         tmp = []
                     if split_str or raw_string:
                         tmp.append(Text(split_str))
             else:
                 tmp.append(element)
         if tmp:
-            result.append(MessageChain(tmp))
+            result.append(self.__class__(tmp))
             tmp = []
         return result
 
@@ -305,7 +305,7 @@ class MessageChain:
                     else:
                         result.append(e)
         if copy:
-            return MessageChain(deepcopy(self.content) + result)
+            return self.__class__(deepcopy(self.content) + result)
         self.content.extend(result)
         return self
 
@@ -316,7 +316,7 @@ class MessageChain:
         Returns:
             MessageChain: 拷贝的副本.
         """
-        return MessageChain(deepcopy(self.content))
+        return self.__class__(deepcopy(self.content))
 
     def index(self, element_type: Type[Element]) -> Union[int, None]:
         """

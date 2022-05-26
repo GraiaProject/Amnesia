@@ -103,6 +103,7 @@ def _loguru_exc_hook(typ: Type[BaseException], val: BaseException, tb: Optional[
 def install(
     rich_console: Optional[Console] = None,
     exc_hook: Optional[ExceptionHook] = _loguru_exc_hook,
+    rich_traceback: bool = True,
     tb_ctx_lines: int = 3,
     tb_theme: Optional[str] = None,
     tb_suppress: Iterable[Union[str, types.ModuleType]] = (),
@@ -124,7 +125,7 @@ def install(
                             }
                         )
                     ),
-                    rich_tracebacks=True,
+                    rich_tracebacks=rich_traceback,
                     tracebacks_show_locals=True,
                     tracebacks_suppress=tb_suppress,
                     tracebacks_extra_lines=tb_ctx_lines,
@@ -133,7 +134,7 @@ def install(
                     log_time_format=time_format,
                     keywords=keywords,
                 ),
-                "format": lambda _: "{message}",
+                "format": (lambda _: "{message}") if rich_traceback else "{message}",
                 "level": 0,
             }
         ]

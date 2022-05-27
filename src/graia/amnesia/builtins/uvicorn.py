@@ -6,7 +6,7 @@ from uvicorn import Config, Server
 
 from graia.amnesia.builtins.common import ASGIHandlerProvider
 from graia.amnesia.launch.component import LaunchComponent
-from graia.amnesia.launch.manager import LaunchManager
+from graia.amnesia.launch.manager import Launart
 from graia.amnesia.launch.service import Service
 from graia.amnesia.log import LoguruHandler
 
@@ -34,7 +34,7 @@ class UvicornService(Service):
     def get_interface(self, interface_type):
         pass
 
-    async def launch_prepare(self, manager: LaunchManager):
+    async def launch_prepare(self, manager: Launart):
         asgi_handler = manager.get_interface(ASGIHandlerProvider).get_asgi_handler()
         self.server = WithoutSigHandlerServer(Config(asgi_handler, host=self.host, port=self.port))
         # TODO: 使用户拥有更多的对 Config 的配置能力.
@@ -46,7 +46,7 @@ class UvicornService(Service):
             target.handlers = [LoguruHandler(level=level)]
             target.propagate = False
 
-    async def launch_mainline(self, manager: LaunchManager):
+    async def launch_mainline(self, manager: Launart):
         await self.server.serve()
         self.server_sigexit.set()
 

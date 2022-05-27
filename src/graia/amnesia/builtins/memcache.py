@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 
 from graia.amnesia.launch.component import LaunchComponent
 from graia.amnesia.launch.interface import ExportInterface
-from graia.amnesia.launch.manager import LaunchManager
+from graia.amnesia.launch.manager import Launart
 from graia.amnesia.launch.service import Service
 from graia.amnesia.transport.common.storage import CacheStorage
 
@@ -86,7 +86,7 @@ class MemcacheService(Service):
     def launch_component(self) -> LaunchComponent:
         return LaunchComponent("cache.client", set(), mainline=self.launch_mainline)
 
-    async def launch_mainline(self, manager: LaunchManager) -> None:
+    async def launch_mainline(self, manager: Launart) -> None:
         while not manager.sigexit.is_set():
             if self.expire:
                 expire_time, key = self.expire[0]

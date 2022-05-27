@@ -16,7 +16,7 @@ from graia.amnesia.builtins.starlette import (
 )
 from graia.amnesia.builtins.uvicorn import UvicornService
 from graia.amnesia.json import TJson
-from graia.amnesia.launch.manager import LaunchManager
+from graia.amnesia.launch.manager import Launart
 from graia.amnesia.log import install
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http import HttpEndpoint
@@ -39,7 +39,7 @@ from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.transport.utilles import TransportRegistrar
 
 loop = asyncio.get_event_loop()
-mgr = LaunchManager()
+mgr = Launart()
 mgr.add_service(AiohttpService())
 mgr.add_service(AiohttpServerService("127.0.0.1", 21447))
 install(mgr.rich_console)
@@ -120,13 +120,13 @@ class TestWsClient(Transport):
         logger.success("client: closed!")
 
 
-async def serve(mgr: LaunchManager):
+async def serve(mgr: Launart):
     i = mgr.get_interface(AiohttpRouter)
     t = TestWebsocketServer()
     i.use(t)
 
 
-async def conn(mgr: LaunchManager):
+async def conn(mgr: Launart):
     logger.info("connecting...", style="red")
     ai = mgr.get_interface(AiohttpClientInterface)
     rider = ai.websocket("http://localhost:21447/ws_test")

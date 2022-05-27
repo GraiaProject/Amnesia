@@ -1,15 +1,19 @@
 {
-    "python.formatting.provider": "black",
-    "cSpell.words": [
-        "Aiohttp",
-        "ASGI",
-        "levelno",
-        "Orjson",
-        "Starlette",
-        "ujson",
-        "utilles",
-        "Uvicorn",
-        "yarl"
-    ],
-    "python.analysis.typeCheckingMode": "basic",
+  "python.formatting.provider": "black",
+  "cSpell.words": [
+    "Aiohttp",
+    "ASGI",
+    "launart",
+    "Launchable",
+    "launchables",
+    "levelno",
+    "Orjson",
+    "sigexit",
+    "Starlette",
+    "ujson",
+    "utilles",
+    "Uvicorn",
+    "yarl"
+  ],
+  "python.analysis.typeCheckingMode": "basic"
 }

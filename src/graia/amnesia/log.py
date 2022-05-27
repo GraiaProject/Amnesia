@@ -6,12 +6,12 @@ from logging import LogRecord
 from types import TracebackType
 from typing import Any, Callable, Dict, Iterable, List, Optional, Type, Union
 
-import rich
 from loguru import logger
 from loguru._logger import Core
 from rich.console import Console, ConsoleRenderable
 from rich.logging import RichHandler
 from rich.text import Text
+from rich.theme import Theme
 
 for lv in Core().levels.values():
     logging.addLevelName(lv.no, lv.name)
@@ -103,6 +103,7 @@ def _loguru_exc_hook(typ: Type[BaseException], val: BaseException, tb: Optional[
 def install(
     rich_console: Optional[Console] = None,
     exc_hook: Optional[ExceptionHook] = _loguru_exc_hook,
+    rich_traceback: bool = True,
     tb_ctx_lines: int = 3,
     tb_theme: Optional[str] = None,
     tb_suppress: Iterable[Union[str, types.ModuleType]] = (),
@@ -115,8 +116,16 @@ def install(
         handlers=[
             {
                 "sink": LoguruRichHandler(
-                    console=rich_console or rich.get_console(),
-                    rich_tracebacks=True,
+                    console=rich_console
+                    or Console(
+                        theme=Theme(
+                            {
+                                "logging.level.success": "green",
+                                "logging.level.trace": "bright_black",
+                            }
+                        )
+                    ),
+                    rich_tracebacks=rich_traceback,
                     tracebacks_show_locals=True,
                     tracebacks_suppress=tb_suppress,
                     tracebacks_extra_lines=tb_ctx_lines,
@@ -125,7 +134,7 @@ def install(
                     log_time_format=time_format,
                     keywords=keywords,
                 ),
-                "format": lambda _: "{message}",
+                "format": (lambda _: "{message}") if rich_traceback else "{message}",
                 "level": 0,
             }
         ]

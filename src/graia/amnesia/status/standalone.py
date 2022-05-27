@@ -71,7 +71,7 @@ class AbstractStandaloneStatus(AbstractStatus, metaclass=ABCMeta):
         while self.available:
             await self.wait_for_update()
 
-    def patch_manager(self, manager: StatusManager):
+    def patch_manager(self, manager: "StatusManager"):
         manager.components.append(self)
         manager._id_component_cache[self.id] = self
         self._manager = manager

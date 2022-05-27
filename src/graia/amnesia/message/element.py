@@ -32,5 +32,5 @@ class Unknown(Element):
         self.type = type
         self.raw_data = raw_data
 
-    def asDisplay(self) -> str:
+    def __str__(self) -> str:
         return f"[$Unknown:type={self.type}]"

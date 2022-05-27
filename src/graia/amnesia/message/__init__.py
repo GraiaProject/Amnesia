@@ -1,5 +1,14 @@
 from copy import deepcopy
-from typing import TYPE_CHECKING, Iterable, Iterator, List, Type, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    ClassVar,
+    Iterable,
+    Iterator,
+    List,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from typing_extensions import Self
 
@@ -49,7 +58,7 @@ class MessageChain:
 
     """
 
-    __text__: Type[Text] = Text
+    __text_element_class__: ClassVar[Type[Text]] = Text
     content: List[Element]
 
     def __init__(self, elements: List[Element]):
@@ -153,13 +162,13 @@ class MessageChain:
         for i in self.content:
             if not isinstance(i, Text):
                 if texts:
-                    result.append(self.__text__("".join(texts)))
+                    result.append(self.__class__.__text_element_class__("".join(texts)))
                     texts.clear()  # 清空缓存
                 result.append(i)
             else:
                 texts.append(i.text)
         if texts:
-            result.append(self.__text__("".join(texts)))
+            result.append(self.__class__.__text_element_class__("".join(texts)))
             texts.clear()  # 清空缓存
         return self.__class__(result)
 
@@ -202,7 +211,7 @@ class MessageChain:
                         result.append(self.__class__(tmp))
                         tmp = []
                     if split_str or raw_string:
-                        tmp.append(self.__text__(split_str))
+                        tmp.append(self.__class__.__text_element_class__(split_str))
             else:
                 tmp.append(element)
         if tmp:
@@ -268,7 +277,7 @@ class MessageChain:
         """
         chain_ref = self.copy() if copy else self
         if isinstance(element, str):
-            element = self.__text__(element)
+            element = self.__class__.__text_element_class__(element)
         chain_ref.content.append(element)
         return chain_ref
 
@@ -292,13 +301,13 @@ class MessageChain:
             if isinstance(i, Element):
                 result.append(i)
             elif isinstance(i, str):
-                result.append(self.__text__(i))
+                result.append(self.__class__.__text_element_class__(i))
             elif isinstance(i, MessageChain):
                 result.extend(i.content)
             else:
                 for e in i:
                     if isinstance(e, str):
-                        result.append(self.__text__(e))
+                        result.append(self.__class__.__text_element_class__(e))
                     else:
                         result.append(e)
         if copy:

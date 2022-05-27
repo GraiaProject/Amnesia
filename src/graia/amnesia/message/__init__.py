@@ -49,6 +49,7 @@ class MessageChain:
 
     """
 
+    __text__: Type[Text] = Text
     content: List[Element]
 
     def __init__(self, elements: List[Element]):
@@ -145,7 +146,6 @@ class MessageChain:
         Returns:
             MessageChain: 得到的新的消息链实例, 里面不应存在有任何的相邻的 Text 元素.
         """
-        from .element import Text
 
         result = []
 
@@ -153,13 +153,13 @@ class MessageChain:
         for i in self.content:
             if not isinstance(i, Text):
                 if texts:
-                    result.append(Text("".join(texts)))
+                    result.append(self.__text__("".join(texts)))
                     texts.clear()  # 清空缓存
                 result.append(i)
             else:
                 texts.append(i.text)
         if texts:
-            result.append(Text("".join(texts)))
+            result.append(self.__text__("".join(texts)))
             texts.clear()  # 清空缓存
         return self.__class__(result)
 
@@ -181,7 +181,7 @@ class MessageChain:
         """
         return self.__class__([i for i in self.content if isinstance(i, types)])
 
-    def split(self, pattern: str, raw_string: bool = False) -> List[Self]:
+    def split(self, pattern: str = " ", raw_string: bool = False) -> List[Self]:
         """和 `str.split` 差不多, 提供一个字符串, 然后返回分割结果.
 
         Args:
@@ -191,7 +191,6 @@ class MessageChain:
         Returns:
             List[Self]: 分割结果, 行为和 `str.split` 差不多.
         """
-        from .element import Text
 
         result: List[Self] = []
         tmp = []
@@ -203,7 +202,7 @@ class MessageChain:
                         result.append(self.__class__(tmp))
                         tmp = []
                     if split_str or raw_string:
-                        tmp.append(Text(split_str))
+                        tmp.append(self.__text__(split_str))
             else:
                 tmp.append(element)
         if tmp:
@@ -226,7 +225,6 @@ class MessageChain:
         Returns:
             bool: 是否以给出的字符串开头
         """
-        from .element import Text
 
         if not self.content or not isinstance(self.content[0], Text):
             return False
@@ -241,7 +239,6 @@ class MessageChain:
         Returns:
             bool: 是否以给出的字符串结尾
         """
-        from .element import Text
 
         if not self.content or not isinstance(self.content[-1], Text):
             return False
@@ -271,7 +268,7 @@ class MessageChain:
         """
         chain_ref = self.copy() if copy else self
         if isinstance(element, str):
-            element = Text(element)
+            element = self.__text__(element)
         chain_ref.content.append(element)
         return chain_ref
 
@@ -295,13 +292,13 @@ class MessageChain:
             if isinstance(i, Element):
                 result.append(i)
             elif isinstance(i, str):
-                result.append(Text(i))
+                result.append(self.__text__(i))
             elif isinstance(i, MessageChain):
                 result.extend(i.content)
             else:
                 for e in i:
                     if isinstance(e, str):
-                        result.append(Text(e))
+                        result.append(self.__text__(e))
                     else:
                         result.append(e)
         if copy:

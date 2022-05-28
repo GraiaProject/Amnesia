@@ -5,10 +5,27 @@ from loguru import logger
 from uvicorn import Config, Server
 
 from graia.amnesia.builtins.common import ASGIHandlerProvider
-from graia.amnesia.log import LoguruHandler
 from launart.component import LaunchComponent
 from launart.manager import Launart
 from launart.service import Service
+
+
+class LoguruHandler(logging.Handler):
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = str(record.levelno)
+
+        frame, depth = logging.currentframe(), 2
+        while frame and frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level,
+            record.getMessage(),
+        )
 
 
 class WithoutSigHandlerServer(Server):

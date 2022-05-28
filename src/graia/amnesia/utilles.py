@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 import string
 from typing import Callable, Dict, Hashable, List, Set, Tuple, Type, TypeVar, Union
@@ -5,16 +7,24 @@ from typing import Callable, Dict, Hashable, List, Set, Tuple, Type, TypeVar, Un
 T = TypeVar("T")
 H = TypeVar("H", bound=Hashable)
 
+PriorityType = Union[
+    Set[T],
+    Dict[T, Union[int, float]],
+    Tuple[
+        Union[
+            Set[T],
+            Dict[T, Union[int, float]],
+        ],
+        ...,
+    ],
+]
+
 
 def priority_strategy(
     items: List[T],
     getter: Callable[
         [T],
-        Union[
-            Set[H],
-            Dict[H, Union[int, float]],
-            Tuple[Union[Set[H], Dict[H, Union[int, float]]], ...],
-        ],
+        PriorityType[H],
     ],
 ) -> Dict[H, T]:
     result = {}

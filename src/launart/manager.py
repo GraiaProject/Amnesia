@@ -90,7 +90,20 @@ class Launart:
             )
         )
 
-    # TODO: CRUD for Launchables
+    def add_launchable(self, launchable: Launchable):
+        if launchable.id in self.launchables:
+            raise ValueError(f"Launchable {launchable.id} already exists.")
+        self.launchables[launchable.id] = launchable
+
+    def get_launchable(self, id: str):
+        if id not in self.launchables:
+            raise ValueError(f"Launchable {id} does not exists.")
+        return self.launchables[id]
+
+    def remove_launchable(self, id: str):
+        if id not in self.launchables:
+            raise ValueError(f"Launchable {id} does not exists.")
+        del self.launchables[id]
 
     async def launch(self):
         logger.info(f"launchable components count: {len(self.launchables)}")

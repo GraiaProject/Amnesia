@@ -1,6 +1,9 @@
-from abc import abstractmethod
-from typing import Callable, ClassVar, Dict, Set, Tuple, Type, TypeVar, Union
+from __future__ import annotations
 
+from abc import abstractmethod
+from typing import Callable, ClassVar, Type, TypeVar
+
+from graia.amnesia.utilles import PriorityType
 from launart.component import Launchable
 from launart.interface import ExportInterface
 
@@ -9,19 +12,7 @@ TCallback = TypeVar("TCallback", bound=Callable)
 
 
 class Service(Launchable):
-    supported_interface_types: ClassVar[
-        Union[
-            Set[Type[ExportInterface]],
-            Dict[Type[ExportInterface], Union[int, float]],
-            Tuple[
-                Union[
-                    Set[Type[ExportInterface]],
-                    Dict[Type[ExportInterface], Union[int, float]],
-                ],
-                ...,
-            ],
-        ]
-    ]
+    supported_interface_types: ClassVar[PriorityType[Type[ExportInterface]]]
 
     def __init__(self) -> None:
         ...

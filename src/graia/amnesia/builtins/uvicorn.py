@@ -5,10 +5,10 @@ from loguru import logger
 from uvicorn import Config, Server
 
 from graia.amnesia.builtins.common import ASGIHandlerProvider
-from graia.amnesia.launch.component import LaunchComponent
-from graia.amnesia.launch.manager import Launart
-from graia.amnesia.launch.service import Service
 from graia.amnesia.log import LoguruHandler
+from launart.component import LaunchComponent
+from launart.manager import Launart
+from launart.service import Service
 
 
 class WithoutSigHandlerServer(Server):

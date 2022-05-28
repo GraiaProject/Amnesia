@@ -13,9 +13,10 @@ except ImportError:
 if TYPE_CHECKING:
     from launart.manager import Launart
 
-U_Stage = Literal["prepare", "blocking", "cleanup"]
+U_Stage = Literal["prepare", "blocking", "cleanup", "finished"]
 # 现在所处的阶段.
 # 状态机-like: 只有 prepare -> blocking -> cleanup 这个流程.
+# finished 仅标记完成, 不表示阶段.
 
 
 class LaunchableStatus(AbstractStandaloneStatus):
@@ -38,26 +39,23 @@ class LaunchableStatus(AbstractStandaloneStatus):
         return self.stage == "blocking"
 
     @property
-    def available(self) -> bool:
-        return self.stage == "blocking"
+    def finished(self) -> bool:
+        return self.stage == "finished"
 
     def unset(self) -> None:
         self.stage = None
 
     def set_prepare(self) -> None:
-        if self.stage is not None:
-            raise ValueError("this component cannot prepare twice.")
         self.update("prepare")
 
     def set_blocking(self) -> None:
-        if self.stage != "prepare":
-            raise ValueError("this component cannot be blocking before prepare nor after cleanup.")
         self.update("blocking")
 
     def set_cleanup(self) -> None:
-        if self.stage != "blocking":
-            raise ValueError("this component cannot cleanup before blocking.")
         self.update("cleanup")
+
+    def set_finished(self) -> None:
+        self.update("finished")
 
     def frame(self):
         instance = LaunchableStatus(self.id)
@@ -75,6 +73,10 @@ class LaunchableStatus(AbstractStandaloneStatus):
 
     async def wait_for_completed(self):
         while self.stage != "cleanup":
+            await self.wait_for_update()
+
+    async def wait_for_finished(self):
+        while self.stage != "finished":
             await self.wait_for_update()
 
 

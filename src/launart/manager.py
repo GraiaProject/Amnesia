@@ -20,16 +20,16 @@ class ManagerStatus(AbstractStandaloneStatus):
         ...
 
     @property
-    def prepared(self) -> bool:
-        return self.stage == "blocking"
+    def preparing(self) -> bool:
+        return self.stage == "prepare"
 
     @property
     def blocking(self) -> bool:
         return self.stage == "blocking"
 
     @property
-    def available(self) -> bool:
-        return self.stage == "blocking"
+    def cleaning(self) -> bool:
+        return self.stage == "cleanup"
 
     def unset(self) -> None:
         self.stage = None
@@ -90,6 +90,8 @@ class Launart:
             )
         )
 
+    # TODO: CRUD for Launchables
+
     async def launch(self):
         logger.info(f"launchable components count: {len(self.launchables)}")
         logger.info(f"launch all components...")
@@ -98,6 +100,7 @@ class Launart:
             logger.error("detect existed ownership, launart may already running.")
             return
 
+        _bind = {_id: _component for _id, _component in self.launchables.items()}
         tasks = {
             _id: asyncio.create_task(_component.launch(self), name=_id) for _id, _component in self.launchables.items()
         }
@@ -110,6 +113,28 @@ class Launart:
                     alt=f"[red bold]mainline [magenta]{t.get_name()}[/magenta] failed.",
                 )
             else:
+                component = _bind[t.get_name()]
+                if self.status.preparing:
+                    if "prepare" in component.stages:
+                        if component.status.prepared:
+                            logger.info(f"component {t.get_name()} prepared.")
+                        else:
+                            logger.error(
+                                f"component {t.get_name()} defined preparing, but exited before status updating."
+                            )
+                elif self.status.blocking:
+                    if "cleanup" in component.stages:
+                        logger.warning(f"component {t.get_name()} exited before cleanup in blocking.")
+                    else:
+                        logger.info(f"component {t.get_name()} finished.")
+                elif self.status.cleaning:
+                    if "cleanup" in component.stages:
+                        if component.status.finished:
+                            logger.info(f"component {t.get_name()} finished.")
+                        else:
+                            logger.error(
+                                f"component {t.get_name()} defined cleanup, but task completed before finished(may forget stat set?)."
+                            )
                 logger.success(
                     f"mainline {t.get_name()} completed.",
                     alt=f"mainline [magenta]{t.get_name()}[/magenta] completed.",
@@ -118,9 +143,10 @@ class Launart:
         for task in tasks.values():
             task.add_done_callback(task_done_cb)
 
+        self.status.set_prepare()
         upper = set()
         for layer, components in enumerate(resolve_requirements(set(self.launchables.values()))):
-            await asyncio.wait([i.status.wait_for_prepared() for i in components])
+            await asyncio.wait([i.status.wait_for_prepared() for i in components if "prepare" in i.required])
             logger.info(f"layer#{layer} completed.", alt=f"layer#[magenta]{layer}[/] completed.")
             for component in components:
                 component_req = upper.intersection(component.required)
@@ -130,6 +156,7 @@ class Launart:
 
         logger.info("all components prepared, blocking start.", style="green bold")
 
+        self.status.set_blocking()
         loop = asyncio.get_running_loop()
         self.blocking_task = loop.create_task(
             asyncio.wait([i.status.wait_for_completed() for i in self.launchables.values()])
@@ -140,19 +167,20 @@ class Launart:
             logger.info("cancelled by user.", style="red bold")
             self.status.set_cleanup()
         finally:
-            logger.info("all mainlines exited, cleanup start.", style="red bold")
+            logger.info("application's sigexit detected, start cleanup", style="red bold")
 
             upper = set()
             for layer, components in enumerate(reversed(resolve_requirements(set(self.launchables.values())))):
-                await asyncio.wait([i.status.wait_for_completed() for i in components])
+                await asyncio.wait([i.status.wait_for_finished() for i in components if "cleanup" in i.required])
                 logger.info(f"layer#{layer} completed.", alt=f"layer#[magenta]{layer}[/] completed.")
                 for component in components:
                     component_req = upper.intersection(component.required)
                     if component_req:
                         component.on_require_exited(component_req)
                 upper = {i.id for i in components}
-            logger.success("cleanup finished.", style="green bold")
-            logger.warning("exiting...", style="red bold")
+            logger.success("cleanup stage finished, now waits for tasks' finale.", style="green bold")
+            await asyncio.wait([i for i in tasks.values() if not i.done()])
+            logger.warning("all done.", style="red bold")
 
     def launch_blocking(self, *, loop: Optional[asyncio.AbstractEventLoop] = None):
         import functools

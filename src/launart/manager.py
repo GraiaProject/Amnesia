@@ -1,15 +1,14 @@
 import asyncio
-from typing import Dict, Optional
+from typing import Dict, Optional, Type
 
 from loguru import logger
 from rich.console import Console
 from rich.theme import Theme
 
 from graia.amnesia.status.standalone import AbstractStandaloneStatus
-from graia.amnesia.utilles import priority_strategy
 from launart.component import Launchable, U_Stage, resolve_requirements
-from launart.interface import ExportInterface
-from launart.service import Service, TInterface
+from launart.service import ExportInterface, Service, TInterface
+from launart.utilles import priority_strategy
 
 
 class ManagerStatus(AbstractStandaloneStatus):
@@ -78,8 +77,11 @@ class Launart:
     blocking_task: Optional[asyncio.Task] = None
     rich_console: Console
 
+    _service_bind: Dict[Type[ExportInterface], Service]
+
     def __init__(self, rich_console: Optional[Console] = None):
         self.launchables = {}
+        self._service_bind = {}
         self.status = ManagerStatus()
         self.rich_console = rich_console or Console(
             theme=Theme(
@@ -104,6 +106,30 @@ class Launart:
         if id not in self.launchables:
             raise ValueError(f"Launchable {id} does not exists.")
         del self.launchables[id]
+
+    def _update_service_bind(self):
+        self._service_bind = priority_strategy(
+            [i for i in self.launchables if isinstance(i, Service)], lambda a: a.supported_interface_types
+        )
+
+    def get_service(self, id: str) -> Service:
+        launchable = self.get_launchable(id)
+        if not isinstance(launchable, Service):
+            raise ValueError(f"{id} is not a service.")
+        return launchable
+
+    def add_service(self, service: Service):
+        self.add_launchable(service)
+        self._update_service_bind()
+
+    def remove_service(self, service: Service):
+        self.remove_launchable(service.id)
+        self._update_service_bind()
+
+    def get_interface(self, interface_type: Type[TInterface]) -> TInterface:
+        if interface_type not in self._service_bind:
+            raise ValueError(f"{interface_type} is not supported.")
+        return self._service_bind[interface_type].get_interface(interface_type)
 
     async def launch(self):
         logger.info(f"launchable components count: {len(self.launchables)}")

@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Callable, ClassVar, Type, TypeVar
+from typing import Callable, ClassVar, Generic, Type, TypeVar
 
 from graia.amnesia.utilles import PriorityType
 from launart.component import Launchable
-from launart.interface import ExportInterface
+
+TService = TypeVar("TService", bound="Service")
+
+
+class ExportInterface(Generic[TService]):
+    service: TService
+
 
 TInterface = TypeVar("TInterface", bound=ExportInterface)
 TCallback = TypeVar("TCallback", bound=Callable)

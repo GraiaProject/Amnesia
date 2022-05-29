@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING
 
-from graia.amnesia.launch.interface import ExportInterface
+from launart import ExportInterface
 
 if TYPE_CHECKING:
     from typing import Any, Awaitable, Callable, MutableMapping, Type

@@ -2,6 +2,7 @@ import asyncio
 
 from aiohttp import ClientSession, ClientWebSocketResponse
 from loguru import logger
+from richuru import install
 
 from graia.amnesia.builtins.aiohttp import (
     AiohttpClientInterface,
@@ -9,15 +10,9 @@ from graia.amnesia.builtins.aiohttp import (
     AiohttpServerService,
     AiohttpService,
 )
-from graia.amnesia.builtins.starlette import (
-    StarletteRouter,
-    StarletteServer,
-    StarletteService,
-)
+from graia.amnesia.builtins.starlette import StarletteRouter, StarletteService
 from graia.amnesia.builtins.uvicorn import UvicornService
 from graia.amnesia.json import TJson
-from graia.amnesia.launch.manager import LaunchManager
-from graia.amnesia.log import install
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http import HttpEndpoint
 from graia.amnesia.transport.common.http.extra import HttpRequest, HttpResponse
@@ -37,11 +32,15 @@ from graia.amnesia.transport.common.websocket.event import WebsocketReconnect
 from graia.amnesia.transport.common.websocket.shortcut import data_type, json_require
 from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.transport.utilles import TransportRegistrar
+from launart import Launart
+from launart.component import Launchable
+from launart.utilles import wait_fut
 
 loop = asyncio.get_event_loop()
-mgr = LaunchManager()
+mgr = Launart()
 mgr.add_service(AiohttpService())
-mgr.add_service(AiohttpServerService("127.0.0.1", 21447))
+mgr.add_service(StarletteService())
+mgr.add_service(UvicornService(port=21447))
 install(mgr.rich_console)
 
 cbr = TransportRegistrar()
@@ -100,7 +99,7 @@ class TestWsClient(Transport):
     async def recon(self, stat: ConnectionStatus):
         await asyncio.sleep(1)
         logger.warning("reconnecting...")
-        return stat.succeed
+        return True
 
     @cbx.on(WebsocketConnectEvent)
     async def connected(self, io: AbstractWebsocketIO):
@@ -120,20 +119,44 @@ class TestWsClient(Transport):
         logger.success("client: closed!")
 
 
-async def serve(mgr: LaunchManager):
-    i = mgr.get_interface(AiohttpRouter)
-    t = TestWebsocketServer()
-    i.use(t)
+class Serve(Launchable):
+    id = "serve"
+
+    @property
+    def required(self):
+        return set()
+
+    @property
+    def stages(self):
+        return set()
+
+    async def launch(self, mgr: Launart):
+        i = mgr.get_interface(StarletteRouter)
+        t = TestWebsocketServer()
+        i.use(t)
 
 
-async def conn(mgr: LaunchManager):
-    logger.info("connecting...", style="red")
-    ai = mgr.get_interface(AiohttpClientInterface)
-    rider = ai.websocket("http://localhost:21447/ws_test")
-    await rider.use(TestWsClient())
+class Conn(Launchable):
+    id = "conn"
+
+    @property
+    def required(self):
+        return {"http.universal_client"}
+
+    @property
+    def stages(self):
+        return set()
+
+    async def launch(self, mgr: Launart):
+        logger.info("connecting...", style="red")
+        ai = mgr.get_interface(AiohttpClientInterface)
+        rider = ai.websocket("http://localhost:21447/ws_test")
+        await wait_fut(
+            [rider.use(TestWsClient()), mgr.status.wait_for_completed()], return_when=asyncio.FIRST_COMPLETED
+        )
 
 
-mgr.new_launch_component("serve", mainline=serve)
-mgr.new_launch_component("conn", set(), mainline=conn)
+mgr.add_launchable(Serve())
+mgr.add_launchable(Conn())
 
 mgr.launch_blocking(loop=loop)

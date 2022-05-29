@@ -1,8 +1,19 @@
 from __future__ import annotations
 
-import random
-import string
-from typing import Callable, Dict, Hashable, List, Set, Tuple, Type, TypeVar, Union
+import asyncio
+from typing import (
+    Callable,
+    Coroutine,
+    Dict,
+    Hashable,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 T = TypeVar("T")
 H = TypeVar("H", bound=Hashable)
@@ -73,24 +84,17 @@ def priority_strategy(
     return result
 
 
-T = TypeVar("T")
-
-
-class Registrar(Dict):
-    def register(self, key):
-        def decorator(method):
-            self[key] = method
-            return method
-
-        return decorator
-
-    def decorate(self, attr):
-        def decorator(cls: Type[T]) -> Type[T]:
-            getattr(cls, attr).update(self)
-            return cls
-
-        return decorator
-
-
-def random_id(length=12):
-    return "".join(random.choices(string.ascii_letters + string.digits, k=length))
+async def wait_fut(
+    coros: Iterable[Union[Coroutine, asyncio.Task]],
+    *,
+    timeout: Optional[float] = None,
+    return_when: str = asyncio.ALL_COMPLETED,
+) -> None:
+    tasks = []
+    for c in coros:
+        if asyncio.iscoroutine(c):
+            tasks.append(asyncio.create_task(c))
+        else:
+            tasks.append(c)
+    if tasks:
+        await asyncio.wait(tasks, timeout=timeout, return_when=return_when)

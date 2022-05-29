@@ -35,7 +35,7 @@ class Transport:
         callbacks = cast(Optional[List[Callable[Concatenate[Self, P], T]]], self.callbacks.get(signature))
         if not callbacks:
             raise TypeError(f"{self.__class__.__name__} has no callback for {signature}")
-        return [partial(callback, self) for callback in callbacks]
+        return [partial(callback, self) for callback in callbacks]  # type: ignore
 
     def has_handler(self, signature: TransportSignature[Callable]) -> bool:
         return signature in self.handlers

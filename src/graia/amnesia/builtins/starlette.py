@@ -11,9 +11,6 @@ from starlette.responses import FileResponse, JSONResponse, PlainTextResponse, R
 from starlette.websockets import WebSocket, WebSocketState
 
 from graia.amnesia.builtins.common import ASGIHandlerProvider
-from graia.amnesia.launch.component import LaunchComponent
-from graia.amnesia.launch.interface import ExportInterface
-from graia.amnesia.launch.service import Service
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http import AbstractServerRequestIO
 from graia.amnesia.transport.common.http import HttpEndpoint as HttpEndpoint
@@ -40,6 +37,8 @@ from graia.amnesia.transport.common.websocket.operator import (
 from graia.amnesia.transport.exceptions import ConnectionClosed
 from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.utilles import random_id
+from launart import ExportInterface, Service
+from launart.utilles import wait_fut
 
 
 class StarletteServer(ASGIHandlerProvider):
@@ -214,7 +213,7 @@ class StarletteRouter(ExportInterface, TransportRider[str, Union[StarletteReques
         callbacks = [i.get_callbacks(event) for i in self.transports if i.has_callback(event)]
         if callbacks:
             callbacks = reduce(lambda a, b: a + b, callbacks)
-            await asyncio.wait([i(*args, **kwargs) for i in callbacks])
+            await wait_fut([i(*args, **kwargs) for i in callbacks])
 
     async def websocket_handler(self, ws: WebSocket):
         io = StarletteWebsocketIO(ws)
@@ -251,6 +250,7 @@ class StarletteRouter(ExportInterface, TransportRider[str, Union[StarletteReques
 
 
 class StarletteService(Service):
+    id = "http.universal_server"
     supported_interface_types = {ASGIHandlerProvider, StarletteRouter}
 
     starlette: Starlette
@@ -267,5 +267,12 @@ class StarletteService(Service):
         raise ValueError(f"unsupported interface type {interface_type}")
 
     @property
-    def launch_component(self) -> LaunchComponent:
-        return LaunchComponent("http.universal_server", set())
+    def stages(self):
+        return set()
+
+    @property
+    def required(self):
+        return set()
+
+    async def launch(self, _):
+        return

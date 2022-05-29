@@ -31,9 +31,6 @@ from loguru import logger
 from typing_extensions import ParamSpec, Self
 
 from graia.amnesia.json import Json, TJson
-from graia.amnesia.launch.component import LaunchComponent
-from graia.amnesia.launch.interface import ExportInterface
-from graia.amnesia.launch.service import Service
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http import AbstractServerRequestIO
 from graia.amnesia.transport.common.http import HttpEndpoint as HttpEndpoint
@@ -67,6 +64,9 @@ from graia.amnesia.transport.exceptions import ConnectionClosed
 from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.transport.signature import TransportSignature
 from graia.amnesia.utilles import random_id
+from launart import ExportInterface, Launchable, Service
+from launart.manager import Launart
+from launart.utilles import wait_fut
 
 
 class AiohttpConnectionStatus(ConnectionStatus):
@@ -205,9 +205,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
             self.response = None
             if self.connect_task is None:
                 self.connect_task = asyncio.create_task(self._connect())
-            await asyncio.wait(
-                (self.status.wait_for_available(), self.connect_task), return_when=asyncio.FIRST_COMPLETED
-            )
+            await wait_fut((self.status.wait_for_available(), self.connect_task), return_when=asyncio.FIRST_COMPLETED)
             if self.connect_task.done():
                 exc = self.connect_task.exception()
                 self.connect_task = None
@@ -255,7 +253,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
         __original_transports: List[Transport] = self.transports[:]
 
         with contextlib.suppress(Exception):
-            while self.transports:
+            while self.transports and self.interface.service.status != "cleanup":
                 try:
                     await self._start_conn()
                     assert isinstance(
@@ -277,6 +275,8 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                 except Exception as e:
                     logger.exception(e)
                 # scan transports
+                if self.interface.service.status == "cleanup":
+                    continue
                 continuing_transports: List[Transport] = self.transports[:]
                 self.transports = []
                 reconnect_handle_tasks = []
@@ -286,8 +286,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                         tsk = asyncio.create_task(handler(self.status))
                         tsk.add_done_callback(lambda tsk: self.transports.append(t) if tsk.result() is True else None)
                         reconnect_handle_tasks.append(tsk)
-                if reconnect_handle_tasks:
-                    await asyncio.wait(reconnect_handle_tasks)
+                await wait_fut(reconnect_handle_tasks)
         self.transports = __original_transports
 
     def use(self, transport: Transport):
@@ -337,6 +336,7 @@ class AiohttpClientInterface(ExportInterface["AiohttpService"]):
 
 
 class AiohttpService(Service):
+    id = "http.universal_client"
     session: ClientSession
     supported_interface_types = {AiohttpClientInterface}
 
@@ -344,20 +344,27 @@ class AiohttpService(Service):
         if TYPE_CHECKING:
             session = session or ClientSession()
         self.session = session
+        super().__init__()
 
     def get_interface(self, interface_type):
         if interface_type is AiohttpClientInterface:
             return AiohttpClientInterface(self)
 
-    async def prepare(self, _):
-        if not self.session:
-            self.session = ClientSession(timeout=ClientTimeout(total=None))
+    @property
+    def stages(self):
+        return {"blocking", "cleanup"}
 
     @property
-    def launch_component(self) -> LaunchComponent:
-        return LaunchComponent(
-            "http.universal_client", set(), prepare=self.prepare, cleanup=lambda _: self.session.close()
-        )
+    def required(self):
+        return set()
+
+    async def launch(self, mgr: Launart):
+        if not self.session:
+            self.session = ClientSession(timeout=ClientTimeout(total=None))
+        self.status.set_blocking()
+        await mgr.status.wait_for_completed()
+        await self.session.close()
+        self.status.set_finished()
 
 
 class AiohttpServerRequestIO(AbstractServerRequestIO):
@@ -514,7 +521,7 @@ class AiohttpRouter(
         callbacks = [i.get_callbacks(event) for i in self.transports if i.has_callback(event)]
         if callbacks:
             callbacks = reduce(lambda a, b: a + b, callbacks)
-            await asyncio.wait([i(*args, **kwargs) for i in callbacks])
+            await wait_fut([i(*args, **kwargs) for i in callbacks])
 
     def io(self, id: Optional[str] = None):
         if id is None:
@@ -535,6 +542,7 @@ class AiohttpRouter(
 
 
 class AiohttpServerService(Service):
+    id = "http.universal_server"
     wsgi_handler: web.Application
     supported_interface_types = {AiohttpRouter}
 
@@ -546,6 +554,7 @@ class AiohttpServerService(Service):
         self.routers: List[AiohttpRouter] = []
         self.host = host
         self.port = port
+        super().__init__()
 
     def get_interface(self, interface_type):
         if interface_type is AiohttpRouter:
@@ -553,24 +562,22 @@ class AiohttpServerService(Service):
             self.routers.append(router)
             return router
 
-    async def mainline(self, _):
+    @property
+    def stages(self):
+        return {"blocking", "cleanup"}
+
+    @property
+    def required(self):
+        return set()
+
+    async def launch(self, manager: Launart):
         logger.info(f"starting server on {self.host}:{self.port}")
         runner = web.AppRunner(self.wsgi_handler)
         await runner.setup()
         site = web.TCPSite(runner, self.host, self.port)
         await site.start()
-        while True:
-            await asyncio.sleep(10)
-
-    async def cleanup(self, _):
+        self.status.set_blocking()
+        await manager.status.wait_for_completed()
         await self.wsgi_handler.shutdown()
         await self.wsgi_handler.cleanup()
-
-    @property
-    def launch_component(self) -> LaunchComponent:
-        return LaunchComponent(
-            "http.universal_server",
-            set(),
-            mainline=self.mainline,
-            cleanup=self.cleanup,
-        )
+        self.status.set_finished()

@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Optional, Type
+from typing import Dict, MutableSet, Optional, Type
 
 from loguru import logger
 from rich.console import Console
@@ -8,7 +8,7 @@ from rich.theme import Theme
 from graia.amnesia.status.standalone import AbstractStandaloneStatus
 from launart.component import Launchable, U_Stage, resolve_requirements
 from launart.service import ExportInterface, Service, TInterface
-from launart.utilles import priority_strategy
+from launart.utilles import priority_strategy, wait_fut
 
 
 class ManagerStatus(AbstractStandaloneStatus):
@@ -16,7 +16,10 @@ class ManagerStatus(AbstractStandaloneStatus):
     stage: Optional[U_Stage] = None
 
     def __init__(self) -> None:
-        ...
+        super().__init__()
+
+    def __repr__(self) -> str:
+        return f"<ManagerStatus stage={self.stage} waiters:{len(self._waiters)}>"
 
     @property
     def preparing(self) -> bool:
@@ -109,7 +112,7 @@ class Launart:
 
     def _update_service_bind(self):
         self._service_bind = priority_strategy(
-            [i for i in self.launchables if isinstance(i, Service)], lambda a: a.supported_interface_types
+            [i for i in self.launchables.values() if isinstance(i, Service)], lambda a: a.supported_interface_types
         )
 
     def get_service(self, id: str) -> Service:
@@ -176,17 +179,21 @@ class Launart:
                             )
                 logger.success(
                     f"mainline {t.get_name()} completed.",
-                    alt=f"mainline [magenta]{t.get_name()}[/magenta] completed.",
+                    alt=f"[green]mainline [magenta]{t.get_name()}[/magenta] completed.",
                 )
 
         for task in tasks.values():
             task.add_done_callback(task_done_cb)
 
         self.status.set_prepare()
-        upper = set()
+        upper: MutableSet[str] = set()
         for layer, components in enumerate(resolve_requirements(set(self.launchables.values()))):
-            await asyncio.wait([i.status.wait_for_prepared() for i in components if "prepare" in i.required])
-            logger.info(f"layer#{layer} completed.", alt=f"layer#[magenta]{layer}[/] completed.")
+            await wait_fut([i.status.wait_for_prepared() for i in components if "prepare" in i.required])
+
+            logger.success(
+                f"Layer #{layer} preparation completed.",
+                alt=f"[green]Layer [magenta]#{layer}[/] preparation completed.",
+            )
             for component in components:
                 component_req = upper.intersection(component.required)
                 if component_req:
@@ -198,27 +205,29 @@ class Launart:
         self.status.set_blocking()
         loop = asyncio.get_running_loop()
         self.blocking_task = loop.create_task(
-            asyncio.wait([i.status.wait_for_completed() for i in self.launchables.values()])
+            wait_fut([i.status.wait_for_completed() for i in self.launchables.values()])
         )
         try:
             await asyncio.shield(self.blocking_task)
         except asyncio.CancelledError:
             logger.info("cancelled by user.", style="red bold")
-            self.status.set_cleanup()
         finally:
             logger.info("application's sigexit detected, start cleanup", style="red bold")
 
             upper = set()
             for layer, components in enumerate(reversed(resolve_requirements(set(self.launchables.values())))):
-                await asyncio.wait([i.status.wait_for_finished() for i in components if "cleanup" in i.required])
-                logger.info(f"layer#{layer} completed.", alt=f"layer#[magenta]{layer}[/] completed.")
+                await wait_fut([i.status.wait_for_finished() for i in components if "cleanup" in i.required])
+                logger.success(
+                    f"Layer #{layer} cleanup completed.",
+                    alt=f"[green]Layer [magenta]#{layer}[/] cleanup completed.",
+                )
                 for component in components:
                     component_req = upper.intersection(component.required)
                     if component_req:
                         component.on_require_exited(component_req)
                 upper = {i.id for i in components}
             logger.success("cleanup stage finished, now waits for tasks' finale.", style="green bold")
-            await asyncio.wait([i for i in tasks.values() if not i.done()])
+            await wait_fut([i for i in tasks.values() if not i.done()])
             logger.warning("all done.", style="red bold")
 
     def launch_blocking(self, *, loop: Optional[asyncio.AbstractEventLoop] = None):

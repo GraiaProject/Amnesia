@@ -1,6 +1,19 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, Hashable, List, Set, Tuple, TypeVar, Union
+import asyncio
+from typing import (
+    Callable,
+    Coroutine,
+    Dict,
+    Hashable,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 T = TypeVar("T")
 H = TypeVar("H", bound=Hashable)
@@ -69,3 +82,19 @@ def priority_strategy(
         else:
             raise TypeError(f"{pattern} is not a valid pattern.")
     return result
+
+
+async def wait_fut(
+    coros: Iterable[Union[Coroutine, asyncio.Task]],
+    *,
+    timeout: Optional[float] = None,
+    return_when: str = asyncio.ALL_COMPLETED,
+) -> None:
+    tasks = []
+    for c in coros:
+        if asyncio.iscoroutine(c):
+            tasks.append(asyncio.create_task(c))
+        else:
+            tasks.append(c)
+    if tasks:
+        await asyncio.wait(tasks, timeout=timeout, return_when=return_when)

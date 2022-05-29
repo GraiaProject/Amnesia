@@ -21,7 +21,7 @@ class Service(Launchable):
     supported_interface_types: ClassVar[PriorityType[Type[ExportInterface]]]
 
     def __init__(self) -> None:
-        ...
+        super().__init__()
 
     @abstractmethod
     def get_interface(self, interface_type: Type[TInterface]) -> TInterface:

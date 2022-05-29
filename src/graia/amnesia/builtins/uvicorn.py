@@ -5,9 +5,9 @@ from loguru import logger
 from uvicorn import Config, Server
 
 from graia.amnesia.builtins.common import ASGIHandlerProvider
-from launart.component import LaunchComponent
 from launart.manager import Launart
 from launart.service import Service
+from launart.utilles import wait_fut
 
 
 class LoguruHandler(logging.Handler):
@@ -36,22 +36,20 @@ class WithoutSigHandlerServer(Server):
 class UvicornService(Service):
     supported_interface_types = set()
     supported_description_types = set()
-
+    id = "http.asgi_runner"
     server: Server
     host: str
     port: int
 
-    server_sigexit: asyncio.Event
-
     def __init__(self, host: str = "127.0.0.1", port: int = 8000):
         self.host = host
         self.port = port
-        self.server_sigexit = asyncio.Event()
+        super().__init__()
 
     def get_interface(self, interface_type):
         pass
 
-    async def launch_prepare(self, manager: Launart):
+    async def prepare(self, manager: Launart):
         asgi_handler = manager.get_interface(ASGIHandlerProvider).get_asgi_handler()
         self.server = WithoutSigHandlerServer(Config(asgi_handler, host=self.host, port=self.port))
         # TODO: 使用户拥有更多的对 Config 的配置能力.
@@ -63,24 +61,31 @@ class UvicornService(Service):
             target.handlers = [LoguruHandler(level=level)]
             target.propagate = False
 
-    async def launch_mainline(self, manager: Launart):
-        await self.server.serve()
-        self.server_sigexit.set()
-
-    async def launch_cleanup(self, _):
-        logger.warning("try to shutdown uvicorn server...")
-        self.server.should_exit = True
-        await asyncio.wait([self.server_sigexit.wait(), asyncio.sleep(10)], return_when=asyncio.FIRST_COMPLETED)
-        if not self.server_sigexit.is_set():
-            logger.warning("timeout, force exit uvicorn server...")
-            self.server.force_exit = True
+    @property
+    def required(self):
+        return {"http.universal_server"}
 
     @property
-    def launch_component(self) -> LaunchComponent:
-        return LaunchComponent(
-            "http.asgi_runner",
-            {"http.universal_server"},
-            self.launch_mainline,
-            self.launch_prepare,
-            self.launch_cleanup,
-        )
+    def stages(self):
+        return {"prepare", "blocking", "cleanup"}
+
+    async def launch(self, mgr: Launart):
+        while self.status.stage != "prepare":
+            await self.status.wait_for_update()
+        await self.prepare(mgr)
+        self.status.set_blocking()
+        serve_task = asyncio.create_task(self.server.serve())
+        await mgr.status.wait_for_completed()
+        self.status.set_cleanup()
+        await self.cleanup(serve_task)
+        self.status.set_finished()
+
+    async def cleanup(self, serve_task: asyncio.Task):
+        logger.warning("try to shutdown uvicorn server...")
+        self.server.should_exit = True
+        await wait_fut([serve_task, asyncio.sleep(10)], return_when=asyncio.FIRST_COMPLETED)
+        if not serve_task.done():
+            logger.warning("timeout, force exit uvicorn server...")
+
+    def on_require_prepared(self, components):
+        self.status.set_prepare()

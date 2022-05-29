@@ -4,11 +4,8 @@ from heapq import heappop, heappush
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Type
 
-from graia.amnesia.launch.component import LaunchComponent
-from graia.amnesia.launch.interface import ExportInterface
-from graia.amnesia.launch.manager import Launart
-from graia.amnesia.launch.service import Service
 from graia.amnesia.transport.common.storage import CacheStorage
+from launart import Launart, Service
 
 
 class Memcache(CacheStorage[Any]):
@@ -60,6 +57,7 @@ class Memcache(CacheStorage[Any]):
 
 
 class MemcacheService(Service):
+    id = "cache.client"
     supported_interface_types = {Memcache}, {CacheStorage: 10}
 
     interval: float
@@ -83,11 +81,15 @@ class MemcacheService(Service):
         raise ValueError(f"unsupported interface type {interface_type}")
 
     @property
-    def launch_component(self) -> LaunchComponent:
-        return LaunchComponent("cache.client", set(), mainline=self.launch_mainline)
+    def required(self):
+        return set()
 
-    async def launch_mainline(self, manager: Launart) -> None:
-        while not manager.sigexit.is_set():
+    @property
+    def stages(self):
+        return {"blocking"}
+
+    async def launch(self, manager: Launart) -> None:
+        while not manager.status.cleaning:
             if self.expire:
                 expire_time, key = self.expire[0]
                 while expire_time <= time():

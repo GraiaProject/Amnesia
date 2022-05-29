@@ -84,6 +84,9 @@ class Launchable(metaclass=ABCMeta):
     id: str
     status: LaunchableStatus
 
+    def __init__(self) -> None:
+        self.status = LaunchableStatus(self.id)
+
     @property
     @abstractmethod
     def required(self) -> Set[str]:

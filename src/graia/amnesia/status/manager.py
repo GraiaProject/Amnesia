@@ -12,6 +12,8 @@ from typing import (
     overload,
 )
 
+from launart.utilles import wait_fut
+
 from .abc import AbstractStatus
 
 T = TypeVar("T", bound=AbstractStatus)
@@ -67,7 +69,7 @@ class StatusManager:
         past: Optional[AbstractStatus] = None,
         current: Optional[AbstractStatus] = None,
     ):
-        asyncio.create_task(asyncio.wait([i.on_required_updated(sid, past, current) for i in self._get_required(sid)]))
+        asyncio.create_task(wait_fut([i.on_required_updated(sid, past, current) for i in self._get_required(sid)]))
 
     def notify_update(self, status: AbstractStatus, past: Optional[AbstractStatus] = None):
         self.exists(status, error=True)

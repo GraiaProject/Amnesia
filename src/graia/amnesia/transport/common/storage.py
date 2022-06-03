@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from datetime import timedelta
 from typing import Any, Generic, List, Optional, TypeVar
 
-from graia.amnesia.launch.service import ExportInterface
+from launart.service import ExportInterface
 
 D = TypeVar("D")
 

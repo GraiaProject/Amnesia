@@ -1,23 +1,12 @@
-from copy import copy
-from typing import Optional
-
-from graia.amnesia.status.standalone import AbstractStandaloneStatus
+from statv import Stats, Statv
 
 
-class ConnectionStatus(AbstractStandaloneStatus):
-    id: str = ""  # avoid abstract check
-    connected: bool = False
-    succeed: bool = False
+class ConnectionStatus(Statv):
+    connected = Stats[bool]("connected", default=False)
+    succeed = Stats[bool]("succeed", default=False)
 
-    def __init__(self, id: str) -> None:
-        self.id = id
+    def __init__(self) -> None:
         super().__init__()
-
-    @property
-    def frame(self):
-        instance = copy(self)
-        del instance._waiters
-        return instance
 
     @property
     def closed(self) -> bool:
@@ -26,11 +15,3 @@ class ConnectionStatus(AbstractStandaloneStatus):
     @property
     def available(self) -> bool:
         return self.connected
-
-    def update(self, connected: Optional[bool] = None, succeed: Optional[bool] = None):
-        past = self.frame
-        if connected is not None:
-            self.connected = connected
-        if succeed is not None:
-            self.succeed = succeed
-        self.notify(past)

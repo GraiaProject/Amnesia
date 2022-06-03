@@ -5,21 +5,20 @@ from loguru import logger
 from rich.console import Console
 from rich.theme import Theme
 
-from graia.amnesia.status.standalone import AbstractStandaloneStatus
 from launart.component import Launchable, U_Stage, resolve_requirements
 from launart.service import ExportInterface, Service, TInterface
 from launart.utilles import priority_strategy, wait_fut
+from statv import Stats, Statv
 
 
-class ManagerStatus(AbstractStandaloneStatus):
-    id = ".launart.manager"  # type: ignore
-    stage: Optional[U_Stage] = None
+class ManagerStatus(Statv):
+    stage = Stats[Optional[U_Stage]]("stage", default=None)
 
     def __init__(self) -> None:
         super().__init__()
 
     def __repr__(self) -> str:
-        return f"<ManagerStatus stage={self.stage} waiters:{len(self._waiters)}>"
+        return f"<ManagerStatus stage={self.stage} waiters={len(self._waiters)}>"
 
     @property
     def preparing(self) -> bool:
@@ -39,27 +38,17 @@ class ManagerStatus(AbstractStandaloneStatus):
     def set_prepare(self) -> None:
         if self.stage is not None:
             raise ValueError("this component cannot prepare twice.")
-        self.update("prepare")
+        self.stage = "prepare"
 
     def set_blocking(self) -> None:
         if self.stage != "prepare":
             raise ValueError("this component cannot be blocking before prepare nor after cleanup.")
-        self.update("blocking")
+        self.stage = "blocking"
 
     def set_cleanup(self) -> None:
         if self.stage != "blocking":
             raise ValueError("this component cannot cleanup before blocking.")
-        self.update("cleanup")
-
-    def frame(self):
-        instance = ManagerStatus()
-        instance.stage = self.stage
-        return instance
-
-    def update(self, stage: U_Stage) -> None:
-        past = self.frame()
-        self.stage = stage
-        self.notify(past)
+        self.stage = "cleanup"
 
     async def wait_for_prepared(self):
         while self.stage == "prepare" or self.stage is None:
@@ -191,8 +180,8 @@ class Launart:
             await wait_fut([i.status.wait_for_prepared() for i in components if "prepare" in i.required])
 
             logger.success(
-                f"Layer #{layer} preparation completed.",
-                alt=f"[green]Layer [magenta]#{layer}[/] preparation completed.",
+                f"Layer #{layer}:[{', '.join([i.id for i in components])}] preparation completed.",
+                alt=f"[green]Layer [magenta]#{layer}[/]:[{', '.join([f'[cyan italic]{i.id}[/cyan italic]' for i in components])}] preparation completed.",
             )
             for component in components:
                 component_req = upper.intersection(component.required)
@@ -218,8 +207,8 @@ class Launart:
             for layer, components in enumerate(reversed(resolve_requirements(set(self.launchables.values())))):
                 await wait_fut([i.status.wait_for_finished() for i in components if "cleanup" in i.required])
                 logger.success(
-                    f"Layer #{layer} cleanup completed.",
-                    alt=f"[green]Layer [magenta]#{layer}[/] cleanup completed.",
+                    f"Layer #{layer}:[{', '.join([i.id for i in components])}] cleanup completed.",
+                    alt=f"[green]Layer [magenta]#{layer}[/]:[{', '.join([f'[cyan]{i.id}[/cyan]' for i in components])}] cleanup completed.",
                 )
                 for component in components:
                     component_req = upper.intersection(component.required)

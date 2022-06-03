@@ -73,12 +73,12 @@ class UvicornService(Service):
         while self.status.stage != "prepare":
             await self.status.wait_for_update()
         await self.prepare(mgr)
-        self.status.set_blocking()
+        self.status.stage = "blocking"
         serve_task = asyncio.create_task(self.server.serve())
         await mgr.status.wait_for_completed()
-        self.status.set_cleanup()
+        self.status.stage = "cleanup"
         await self.cleanup(serve_task)
-        self.status.set_finished()
+        self.status.stage = "finished"
 
     async def cleanup(self, serve_task: asyncio.Task):
         logger.warning("try to shutdown uvicorn server...")
@@ -88,4 +88,4 @@ class UvicornService(Service):
             logger.warning("timeout, force exit uvicorn server...")
 
     def on_require_prepared(self, components):
-        self.status.set_prepare()
+        self.status.stage = "prepare"

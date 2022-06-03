@@ -67,30 +67,17 @@ from graia.amnesia.utilles import random_id
 from launart import ExportInterface, Launchable, Service
 from launart.manager import Launart
 from launart.utilles import wait_fut
+from statv import Stats
 
 
 class AiohttpConnectionStatus(ConnectionStatus):
+    drop = Stats[bool]("drop", default=False)
+
     def __init__(self) -> None:
-        self.connected: bool = False
-        self.succeed: bool = False
-        self.drop: bool = False
-        super().__init__("aiohttp.connection")
+        super().__init__()
 
     def __repr__(self) -> str:
         return f"<ConnectionStatus {self.connected=:}, {self.succeed=:}, {self.drop=:}, {self._waiters=:}>"
-
-    def update(
-        self, connected: Optional[bool] = None, succeed: Optional[bool] = None, drop: Optional[bool] = None
-    ) -> None:
-        past = self.frame
-        if connected is not None:
-            self.connected = connected
-        if succeed is not None:
-            self.succeed = succeed
-        if drop is not None:
-            self.drop = drop
-
-        self.notify(past)
 
     async def wait_for_drop(self) -> None:
         while not self.drop:
@@ -195,10 +182,10 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
     async def _connect(self):
         async with self.conn_func(**self.call_param) as resp:
             self.response = resp
-            self.status.update(connected=True)
+            self.status.connected = True
             await self.status.wait_for_drop()
-            self.status.update(drop=False)
-        self.status.update(connected=False)
+            self.status.drop = False
+        self.status.connected = False
 
     async def _start_conn(self) -> Self:
         if not self.status.available:
@@ -211,7 +198,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                 self.connect_task = None
                 if exc:
                     raise exc
-            self.status.update(succeed=True)
+            self.status.succeed = True
         return self
 
     def __await__(self):
@@ -233,7 +220,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
         if not self.status.connected:
             raise RuntimeError("the connection is not ready, please await the instance to ensure connection")
         assert self.response
-        self.status.update(drop=True)
+        self.status.drop = True
         if isinstance(self.response, ClientWebSocketResponse):
             return ClientWebsocketIO(self.response)
         elif isinstance(self.response, ClientResponse):
@@ -267,7 +254,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                     await self.trigger_callbacks(WebsocketCloseEvent, io)
                     if not io.closed:
                         await io.close()
-                    self.status.update(drop=True)
+                    self.status.drop = True
                     await self.status.wait_for_unavailable()
                     self.connect_task = None
                 except aiohttp.ClientConnectionError as e:
@@ -361,10 +348,10 @@ class AiohttpService(Service):
     async def launch(self, mgr: Launart):
         if not self.session:
             self.session = ClientSession(timeout=ClientTimeout(total=None))
-        self.status.set_blocking()
+        self.status.stage = "blocking"
         await mgr.status.wait_for_completed()
         await self.session.close()
-        self.status.set_finished()
+        self.status.stage = "finished"
 
 
 class AiohttpServerRequestIO(AbstractServerRequestIO):
@@ -576,8 +563,8 @@ class AiohttpServerService(Service):
         await runner.setup()
         site = web.TCPSite(runner, self.host, self.port)
         await site.start()
-        self.status.set_blocking()
+        self.status.stage = "blocking"
         await manager.status.wait_for_completed()
         await self.wsgi_handler.shutdown()
         await self.wsgi_handler.cleanup()
-        self.status.set_finished()
+        self.status.stage = "finished"

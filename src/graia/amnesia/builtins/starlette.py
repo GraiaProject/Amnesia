@@ -187,15 +187,15 @@ class StarletteRouter(ExportInterface, TransportRider[str, Union[StarletteReques
 
         if isinstance(response_body, (str, bytes)):
             starlette_resp = PlainTextResponse(
-                response_body, status_code=response_desc.get("status", 200), headers=response_desc.get("headers")
+                response_body, status_code=response_desc.get("status", 200), headers=response_desc.get("headers", {})
             )
         elif isinstance(response_body, (dict, list)):
             starlette_resp = JSONResponse(
-                response_body, status_code=response_desc.get("status", 200), headers=response_desc.get("headers")
+                response_body, status_code=response_desc.get("status", 200), headers=response_desc.get("headers", {})
             )
         elif isinstance(response_body, pathlib.Path):
             starlette_resp = FileResponse(
-                response_body, status_code=response_desc.get("status", 200), headers=response_desc.get("headers")
+                response_body, status_code=response_desc.get("status", 200), headers=response_desc.get("headers", {})
             )
         elif isinstance(response_body, Response):
             starlette_resp = response_body
@@ -205,7 +205,7 @@ class StarletteRouter(ExportInterface, TransportRider[str, Union[StarletteReques
         if "cookies" in response_desc:
             expire = response_desc.get("cookie_expires")
             for key, value in response_desc["cookies"].items():
-                starlette_resp.set_cookie(key, value, expire)
+                starlette_resp.set_cookie(key, value, expire)  # type: ignore
 
         return starlette_resp
 

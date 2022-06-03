@@ -4,8 +4,9 @@ from heapq import heappop, heappush
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Type
 
-from graia.amnesia.transport.common.storage import CacheStorage
 from launart import Launart, Service
+
+from graia.amnesia.transport.common.storage import CacheStorage
 
 
 class Memcache(CacheStorage[Any]):

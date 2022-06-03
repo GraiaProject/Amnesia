@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, List, Optional, Set
 
-from graia.amnesia.status.standalone import AbstractStandaloneStatus
+from statv import Stats, Statv
 
 try:
     from typing import Literal
@@ -19,16 +19,11 @@ U_Stage = Literal["prepare", "blocking", "cleanup", "finished"]
 # finished 仅标记完成, 不表示阶段.
 
 
-class LaunchableStatus(AbstractStandaloneStatus):
-    stage: Optional[U_Stage] = None
+class LaunchableStatus(Statv):
+    stage = Stats[Optional[U_Stage]]("stage", default=None)
 
-    def __init__(self, id: str) -> None:
-        self._id = id
+    def __init__(self) -> None:
         super().__init__()
-
-    @property
-    def id(self) -> str:
-        return self._id
 
     @property
     def prepared(self) -> bool:
@@ -44,28 +39,6 @@ class LaunchableStatus(AbstractStandaloneStatus):
 
     def unset(self) -> None:
         self.stage = None
-
-    def set_prepare(self) -> None:
-        self.update("prepare")
-
-    def set_blocking(self) -> None:
-        self.update("blocking")
-
-    def set_cleanup(self) -> None:
-        self.update("cleanup")
-
-    def set_finished(self) -> None:
-        self.update("finished")
-
-    def frame(self):
-        instance = LaunchableStatus(self.id)
-        instance.stage = self.stage
-        return instance
-
-    def update(self, stage: U_Stage) -> None:
-        past = self.frame()
-        self.stage = stage
-        self.notify(past)
 
     async def wait_for_prepared(self):
         while self.stage == "prepare" or self.stage is None:
@@ -85,7 +58,7 @@ class Launchable(metaclass=ABCMeta):
     status: LaunchableStatus
 
     def __init__(self) -> None:
-        self.status = LaunchableStatus(self.id)
+        self.status = LaunchableStatus()
 
     @property
     @abstractmethod

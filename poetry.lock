@@ -346,6 +346,18 @@ pywin32 = {version = ">=1.0", markers = "sys_platform == \"win32\" and platform_
 traitlets = "*"
 
 [[package]]
+name = "launart"
+version = "0.1.0"
+description = ""
+category = "main"
+optional = false
+python-versions = ">=3.8"
+
+[package.dependencies]
+loguru = ">=0.6.0"
+statv = ">=0.1.0"
+
+[[package]]
 name = "loguru"
 version = "0.6.0"
 description = "Python logging made (stupidly) simple"
@@ -648,6 +660,14 @@ typing-extensions = {version = ">=3.10.0", markers = "python_version < \"3.10\""
 full = ["itsdangerous", "jinja2", "python-multipart", "pyyaml", "requests"]
 
 [[package]]
+name = "statv"
+version = "0.1.0"
+description = "a uniform status implementation for graia project"
+category = "main"
+optional = false
+python-versions = ">=3.8"
+
+[[package]]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
@@ -752,7 +772,7 @@ ujson = ["ujson"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "36e0f5173749c3a7db1dcac983769e68a878fe2d9469db38cb4a1d315bd143b7"
+content-hash = "f3056e8143f5d99db8870998635c2b0e7db5993c691b0bf9b0fa5ddd6e11010e"
 
 [metadata.files]
 aiohttp = [
@@ -1075,6 +1095,10 @@ jupyter-core = [
     {file = "jupyter_core-4.9.2-py3-none-any.whl", hash = "sha256:f875e4d27e202590311d468fa55f90c575f201490bd0c18acabe4e318db4a46d"},
     {file = "jupyter_core-4.9.2.tar.gz", hash = "sha256:d69baeb9ffb128b8cd2657fcf2703f89c769d1673c851812119e3a2a0e93ad9a"},
 ]
+launart = [
+    {file = "launart-0.1.0-py3-none-any.whl", hash = "sha256:4f4a36bb9f157e637d7344d0ca074491876473a6aaddd5c5eb2ca865d9b1d3f7"},
+    {file = "launart-0.1.0.tar.gz", hash = "sha256:50200d01f6127b798d206dbdda2b03101de878db471b8ac5d91bf3762ec51b15"},
+]
 loguru = [
     {file = "loguru-0.6.0-py3-none-any.whl", hash = "sha256:4e2414d534a2ab57573365b3e6d0234dfb1d84b68b7f3b948e6fb743860a77c3"},
     {file = "loguru-0.6.0.tar.gz", hash = "sha256:066bd06758d0a513e9836fd9c6b5a75bfb3fd36841f4b996bc60b547a309d41c"},
@@ -1362,6 +1386,10 @@ stack-data = [
 starlette = [
     {file = "starlette-0.19.0-py3-none-any.whl", hash = "sha256:de752c8f6c2ac6ef78bfe44058fc61dc04895eba24d4e47d2ae254ba5c125c5e"},
     {file = "starlette-0.19.0.tar.gz", hash = "sha256:4a1a92aa89dbacc3a4c694a2c112863e88449730ff99b421a9b71fb2213bcd9c"},
+]
+statv = [
+    {file = "statv-0.1.0-py3-none-any.whl", hash = "sha256:7aa6fa41f86457fb1b8103c46a4cc3282b33034d26ea3d80499288c5c63a559d"},
+    {file = "statv-0.1.0.tar.gz", hash = "sha256:a01d0761fb8668891f797b833abfcd5c85b8aed1aafe660c79780c31e7457c69"},
 ]
 tomli = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},

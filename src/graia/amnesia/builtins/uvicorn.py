@@ -49,38 +49,30 @@ class UvicornService(Service):
     def get_interface(self, interface_type):
         pass
 
-    async def prepare(self, manager: Launart):
-        asgi_handler = manager.get_interface(ASGIHandlerProvider).get_asgi_handler()
-        self.server = WithoutSigHandlerServer(Config(asgi_handler, host=self.host, port=self.port))
-        # TODO: 使用户拥有更多的对 Config 的配置能力.
-        PATCHES = "uvicorn.error", "uvicorn.asgi", "uvicorn.access", ""
-        level = logging.getLevelName(20)  # default level for uvicorn
-        logging.basicConfig(handlers=[LoguruHandler()], level=level)
-        for name in PATCHES:
-            target = logging.getLogger(name)
-            target.handlers = [LoguruHandler(level=level)]
-            target.propagate = False
-
     @property
     def required(self):
         return {"http.universal_server"}
 
     @property
     def stages(self):
-        return {"prepare", "blocking", "cleanup"}
+        return {"prepare", "cleanup"}
 
     async def launch(self, mgr: Launart):
         async with self.stage("prepare"):
-            await self.prepare(mgr)
-        async with self.stage("blocking"):
-            serve_task = asyncio.create_task(self.server.serve())
-            await mgr.status.wait_for_completed()
+            asgi_handler = mgr.get_interface(ASGIHandlerProvider).get_asgi_handler()
+            self.server = WithoutSigHandlerServer(Config(asgi_handler, host=self.host, port=self.port))
+            # TODO: 使用户拥有更多的对 Config 的配置能力.
+            PATCHES = "uvicorn.error", "uvicorn.asgi", "uvicorn.access", ""
+            level = logging.getLevelName(20)  # default level for uvicorn
+            logging.basicConfig(handlers=[LoguruHandler()], level=level)
+            for name in PATCHES:
+                target = logging.getLogger(name)
+                target.handlers = [LoguruHandler(level=level)]
+                target.propagate = False
         async with self.stage("cleanup"):
-            await self.cleanup(serve_task)
-
-    async def cleanup(self, serve_task: asyncio.Task):
-        logger.warning("try to shutdown uvicorn server...")
-        self.server.should_exit = True
-        await wait_fut([serve_task, asyncio.sleep(10)], return_when=asyncio.FIRST_COMPLETED)
-        if not serve_task.done():
-            logger.warning("timeout, force exit uvicorn server...")
+            serve_task = asyncio.create_task(self.server.serve())
+            logger.warning("try to shutdown uvicorn server...")
+            self.server.should_exit = True
+            await wait_fut([serve_task, asyncio.sleep(10)], return_when=asyncio.FIRST_COMPLETED)
+            if not serve_task.done():
+                logger.warning("timeout, force exit uvicorn server...")

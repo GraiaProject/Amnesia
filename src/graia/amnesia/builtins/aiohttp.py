@@ -240,7 +240,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
         __original_transports: List[Transport] = self.transports[:]
 
         with contextlib.suppress(Exception):
-            while self.transports and self.interface.service.status != "cleanup":
+            while self.transports and self.interface.service.status.stage != "finished":
                 try:
                     await self._start_conn()
                     assert isinstance(
@@ -339,19 +339,18 @@ class AiohttpService(Service):
 
     @property
     def stages(self):
-        return {"blocking", "cleanup"}
+        return {"prepare", "cleanup"}
 
     @property
     def required(self):
         return set()
 
     async def launch(self, mgr: Launart):
-        if not self.session:
-            self.session = ClientSession(timeout=ClientTimeout(total=None))
-        self.status.stage = "blocking"
-        await mgr.status.wait_for_completed()
-        await self.session.close()
-        self.status.stage = "finished"
+        async with self.stage("prepare"):
+            if not self.session:
+                self.session = ClientSession(timeout=ClientTimeout(total=None))
+        async with self.stage("cleanup"):
+            await self.session.close()
 
 
 class AiohttpServerRequestIO(AbstractServerRequestIO):

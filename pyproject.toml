@@ -11,7 +11,7 @@ license-expression = "MIT"
 dependencies = [
     "loguru<1.0.0,>=0.6.0",
     "yarl<2.0.0,>=1.7.2",
-    "launart>=0.3.0",
+    "launart>=0.3.1",
     "statv>=0.2.2",
 ]
 readme = "README.md"
@@ -36,7 +36,7 @@ dev = [
     "black<23.0.0,>=22.1.0",
     "ipykernel<7.0.0,>=6.9.2",
     "starlette<1.0.0,>=0.19.0",
-    "uvicorn<1.0.0,>=0.17.6",
+    "uvicorn[standard]>=0.17.6",
     "richuru<1.0.0,>=0.1.0",
 ]
 [build-system]

@@ -11,8 +11,8 @@ license-expression = "MIT"
 dependencies = [
     "loguru<1.0.0,>=0.6.0",
     "yarl<2.0.0,>=1.7.2",
-    "launart<1.0.0,>=0.1.0",
-    "statv<1.0.0,>=0.1.0",
+    "launart>=0.3.0",
+    "statv>=0.2.2",
 ]
 readme = "README.md"
 description = "a collection of shared components for graia"

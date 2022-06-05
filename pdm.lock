@@ -232,7 +232,7 @@ dependencies = [
 
 [[package]]
 name = "launart"
-version = "0.2.0"
+version = "0.3.0"
 requires_python = ">=3.8"
 summary = "UNKNOWN"
 dependencies = [
@@ -456,7 +456,7 @@ dependencies = [
 
 [[package]]
 name = "statv"
-version = "0.2.0"
+version = "0.2.2"
 requires_python = ">=3.8"
 summary = "a uniform status implementation for graia project"
 
@@ -524,7 +524,7 @@ dependencies = [
 
 [metadata]
 lock_version = "3.1"
-content_hash = "sha256:4ac4b361d1283c4b6acc0d3106a0ce5b52b23d55e89ba30ed6ad7d6d8c4b8233"
+content_hash = "sha256:5a34d6ebc6afc93f1c21ed023a089b3659d6b2cc2f8083c490babd22b79799e0"
 
 [metadata.files]
 "aiohttp 3.8.1" = [
@@ -847,9 +847,9 @@ content_hash = "sha256:4ac4b361d1283c4b6acc0d3106a0ce5b52b23d55e89ba30ed6ad7d6d8
     {file = "jupyter_core-4.10.0-py3-none-any.whl", hash = "sha256:e7f5212177af7ab34179690140f188aa9bf3d322d8155ed972cbded19f55b6f3"},
     {file = "jupyter_core-4.10.0.tar.gz", hash = "sha256:a6de44b16b7b31d7271130c71a6792c4040f077011961138afed5e5e73181aec"},
 ]
-"launart 0.2.0" = [
-    {file = "launart-0.2.0-py3-none-any.whl", hash = "sha256:777b94cee25bc7dfca7ddf72eae33866110313972ee3d5756d81eb64f141405d"},
-    {file = "launart-0.2.0.tar.gz", hash = "sha256:2c8810e3357a41738ff5e4a4cc7dd952cb14a377ea64550c659e0470f1734014"},
+"launart 0.3.0" = [
+    {file = "launart-0.3.0-py3-none-any.whl", hash = "sha256:bc686a2a547189220bb6a471cdd1e4d71b6e714107fd4e6ddeb18700b3f20727"},
+    {file = "launart-0.3.0.tar.gz", hash = "sha256:fbfd2ead07080debdaac507459dde5be3b143e8fdf01c4118d07c7985bd35e78"},
 ]
 "loguru 0.6.0" = [
     {file = "loguru-0.6.0-py3-none-any.whl", hash = "sha256:4e2414d534a2ab57573365b3e6d0234dfb1d84b68b7f3b948e6fb743860a77c3"},
@@ -1155,9 +1155,9 @@ content_hash = "sha256:4ac4b361d1283c4b6acc0d3106a0ce5b52b23d55e89ba30ed6ad7d6d8
     {file = "starlette-0.20.1-py3-none-any.whl", hash = "sha256:4fe6f005ac9cd973ca885c3679c8d991fde7d2ea4f27b2318b79a6673c3b70af"},
     {file = "starlette-0.20.1.tar.gz", hash = "sha256:dd8227083df6c70ae238324e9270a33d373da38e3933f6b162933f5a16bd28ea"},
 ]
-"statv 0.2.0" = [
-    {file = "statv-0.2.0-py3-none-any.whl", hash = "sha256:3e676f09e74715186d9728fb357548e2e0ea2ac9102e2f0a142b14221ec5d6b9"},
-    {file = "statv-0.2.0.tar.gz", hash = "sha256:bfef158e7914d8ef9b4ea8861d10a1ddca3011bea9eb7df1b1b049d0a6bb94a2"},
+"statv 0.2.2" = [
+    {file = "statv-0.2.2-py3-none-any.whl", hash = "sha256:24e3c37df0db49dbb02d252ae45043342fd0862ddf4442d7f484684ad0994b34"},
+    {file = "statv-0.2.2.tar.gz", hash = "sha256:a0e3be14e8a416d3b39bff18c498672abbed4bbe9648613c5bfeb45cba05cca7"},
 ]
 "tomli 2.0.1" = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},

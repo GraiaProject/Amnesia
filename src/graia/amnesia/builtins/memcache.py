@@ -90,11 +90,12 @@ class MemcacheService(Service):
         return {"blocking"}
 
     async def launch(self, manager: Launart) -> None:
-        while not manager.status.cleaning:
-            if self.expire:
-                expire_time, key = self.expire[0]
-                while expire_time <= time():
-                    self.cache.pop(key, None)
-                    heappop(self.expire)
+        async with self.stage("blocking"):
+            while not manager.status.exiting:
+                if self.expire:
                     expire_time, key = self.expire[0]
-            await asyncio.sleep(self.interval)
+                    while expire_time <= time():
+                        self.cache.pop(key, None)
+                        heappop(self.expire)
+                        expire_time, key = self.expire[0]
+                await asyncio.sleep(self.interval)

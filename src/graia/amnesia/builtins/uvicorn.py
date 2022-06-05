@@ -1,13 +1,13 @@
 import asyncio
 import logging
 
+from launart.manager import Launart
+from launart.service import Service
+from launart.utilles import wait_fut
 from loguru import logger
 from uvicorn import Config, Server
 
 from graia.amnesia.builtins.common import ASGIHandlerProvider
-from launart.manager import Launart
-from launart.service import Service
-from launart.utilles import wait_fut
 
 
 class LoguruHandler(logging.Handler):
@@ -70,15 +70,13 @@ class UvicornService(Service):
         return {"prepare", "blocking", "cleanup"}
 
     async def launch(self, mgr: Launart):
-        while self.status.stage != "prepare":
-            await self.status.wait_for_update()
-        await self.prepare(mgr)
-        self.status.stage = "blocking"
-        serve_task = asyncio.create_task(self.server.serve())
-        await mgr.status.wait_for_completed()
-        self.status.stage = "cleanup"
-        await self.cleanup(serve_task)
-        self.status.stage = "finished"
+        async with self.stage("prepare"):
+            await self.prepare(mgr)
+        async with self.stage("blocking"):
+            serve_task = asyncio.create_task(self.server.serve())
+            await mgr.status.wait_for_completed()
+        async with self.stage("cleanup"):
+            await self.cleanup(serve_task)
 
     async def cleanup(self, serve_task: asyncio.Task):
         logger.warning("try to shutdown uvicorn server...")
@@ -86,6 +84,3 @@ class UvicornService(Service):
         await wait_fut([serve_task, asyncio.sleep(10)], return_when=asyncio.FIRST_COMPLETED)
         if not serve_task.done():
             logger.warning("timeout, force exit uvicorn server...")
-
-    def on_require_prepared(self, components):
-        self.status.stage = "prepare"

@@ -27,7 +27,11 @@ from aiohttp import (
     WSMsgType,
     web,
 )
+from launart import ExportInterface, Service
+from launart.manager import Launart
+from launart.utilles import wait_fut
 from loguru import logger
+from statv import Stats
 from typing_extensions import ParamSpec, Self
 
 from graia.amnesia.json import Json, TJson
@@ -64,10 +68,6 @@ from graia.amnesia.transport.exceptions import ConnectionClosed
 from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.transport.signature import TransportSignature
 from graia.amnesia.utilles import random_id
-from launart import ExportInterface, Launchable, Service
-from launart.manager import Launart
-from launart.utilles import wait_fut
-from statv import Stats
 
 
 class AiohttpConnectionStatus(ConnectionStatus):
@@ -551,20 +551,20 @@ class AiohttpServerService(Service):
 
     @property
     def stages(self):
-        return {"blocking", "cleanup"}
+        return {"prepare", "blocking", "cleanup"}
 
     @property
     def required(self):
         return set()
 
     async def launch(self, manager: Launart):
-        logger.info(f"starting server on {self.host}:{self.port}")
-        runner = web.AppRunner(self.wsgi_handler)
-        await runner.setup()
-        site = web.TCPSite(runner, self.host, self.port)
-        await site.start()
-        self.status.stage = "blocking"
-        await manager.status.wait_for_completed()
-        await self.wsgi_handler.shutdown()
-        await self.wsgi_handler.cleanup()
-        self.status.stage = "finished"
+        async with self.stage("prepare"):
+            logger.info(f"starting server on {self.host}:{self.port}")
+            runner = web.AppRunner(self.wsgi_handler)
+            await runner.setup()
+            site = web.TCPSite(runner, self.host, self.port)
+        async with self.stage("blocking"):
+            await site.start()
+        async with self.stage("cleanup"):
+            await self.wsgi_handler.shutdown()
+            await self.wsgi_handler.cleanup()

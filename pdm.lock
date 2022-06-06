@@ -238,8 +238,9 @@ dependencies = [
 
 [[package]]
 name = "launart"
-version = "0.3.1"
+version = "0.3.3"
 requires_python = ">=3.8"
+url = "https://github.com/GraiaProject/launart/archive/refs/heads/master.zip"
 summary = "UNKNOWN"
 dependencies = [
     "loguru>=0.6.0",
@@ -426,7 +427,7 @@ dependencies = [
 
 [[package]]
 name = "richuru"
-version = "0.1.0"
+version = "0.1.1"
 requires_python = ">=3.8"
 summary = "a bridge between loguru & rich, rich's powerful render in loguru!"
 dependencies = [
@@ -580,7 +581,7 @@ dependencies = [
 
 [metadata]
 lock_version = "3.1"
-content_hash = "sha256:ffabc84f52997443164a23ce65078409011d6d1bc4ce9bae256e964c09d898e4"
+content_hash = "sha256:8d34341c315d785a6e5a375cabd0be446cc762bb023b00787dc833b5171bbe8e"
 
 [metadata.files]
 "aiohttp 3.8.1" = [
@@ -939,9 +940,8 @@ content_hash = "sha256:ffabc84f52997443164a23ce65078409011d6d1bc4ce9bae256e964c0
     {file = "jupyter_core-4.10.0-py3-none-any.whl", hash = "sha256:e7f5212177af7ab34179690140f188aa9bf3d322d8155ed972cbded19f55b6f3"},
     {file = "jupyter_core-4.10.0.tar.gz", hash = "sha256:a6de44b16b7b31d7271130c71a6792c4040f077011961138afed5e5e73181aec"},
 ]
-"launart 0.3.1" = [
-    {file = "launart-0.3.1-py3-none-any.whl", hash = "sha256:b1e5a775c9578bfe0929361a5fdddfa77120bf0742736932a689cc7bbf76a3c1"},
-    {file = "launart-0.3.1.tar.gz", hash = "sha256:817f00796e7ed4edae62efe940f97922604007c26e06217a47031c167df783a6"},
+"launart 0.3.3" = [
+    {file = "master.zip", hash = "sha256:b79ac95529e262208026540a62cc3b9ced98bdf3dcde9106b5b96c1e880635e8"},
 ]
 "loguru 0.6.0" = [
     {file = "loguru-0.6.0-py3-none-any.whl", hash = "sha256:4e2414d534a2ab57573365b3e6d0234dfb1d84b68b7f3b948e6fb743860a77c3"},
@@ -1262,9 +1262,9 @@ content_hash = "sha256:ffabc84f52997443164a23ce65078409011d6d1bc4ce9bae256e964c0
     {file = "rich-12.4.4-py3-none-any.whl", hash = "sha256:d2bbd99c320a2532ac71ff6a3164867884357da3e3301f0240090c5d2fdac7ec"},
     {file = "rich-12.4.4.tar.gz", hash = "sha256:4c586de507202505346f3e32d1363eb9ed6932f0c2f63184dea88983ff4971e2"},
 ]
-"richuru 0.1.0" = [
-    {file = "richuru-0.1.0-py3-none-any.whl", hash = "sha256:327e0fec4246f6df73c52e10e25da413d52e698862860f68096f2c0ea2d1b48c"},
-    {file = "richuru-0.1.0.tar.gz", hash = "sha256:f655a0f91e967c98277accce6a6f575a5faeb0d6e2e9ed612cadf2b7ca6fc44f"},
+"richuru 0.1.1" = [
+    {file = "richuru-0.1.1-py3-none-any.whl", hash = "sha256:e73d43913a372d741ff61106001b5e6adfa24c6d0665dd390328a33e34cd210d"},
+    {file = "richuru-0.1.1.tar.gz", hash = "sha256:815816f3a0142b67c53bd424fcced0821aa1104b5386301cff47fc7bbb6d90ea"},
 ]
 "setuptools 62.3.2" = [
     {file = "setuptools-62.3.2-py3-none-any.whl", hash = "sha256:68e45d17c9281ba25dc0104eadd2647172b3472d9e01f911efa57965e8d51a36"},

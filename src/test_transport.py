@@ -41,7 +41,7 @@ mgr = Launart()
 mgr.add_service(AiohttpService())
 mgr.add_service(StarletteService())
 mgr.add_service(UvicornService(port=21447))
-install()
+# install()
 
 cbr = TransportRegistrar()
 
@@ -153,7 +153,7 @@ class Conn(Launchable):
             ai = mgr.get_interface(AiohttpClientInterface)
             rider = ai.websocket("http://localhost:21447/ws_test")
             await asyncio.wait(
-                [rider.use(TestWsClient()), mgr.status.wait_for_completed()], return_when=asyncio.FIRST_COMPLETED
+                [rider.use(TestWsClient()), mgr.status.wait_for_sigexit()], return_when=asyncio.FIRST_COMPLETED
             )
 
 

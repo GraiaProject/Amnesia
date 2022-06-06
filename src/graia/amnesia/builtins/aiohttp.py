@@ -339,14 +339,14 @@ class AiohttpService(Service):
 
     @property
     def stages(self):
-        return {"prepare", "cleanup"}
+        return {"preparing", "cleanup"}
 
     @property
     def required(self):
         return set()
 
     async def launch(self, mgr: Launart):
-        async with self.stage("prepare"):
+        async with self.stage("preparing"):
             if not self.session:
                 self.session = ClientSession(timeout=ClientTimeout(total=None))
         async with self.stage("cleanup"):
@@ -550,14 +550,14 @@ class AiohttpServerService(Service):
 
     @property
     def stages(self):
-        return {"prepare", "blocking", "cleanup"}
+        return {"preparing", "blocking", "cleanup"}
 
     @property
     def required(self):
         return set()
 
     async def launch(self, manager: Launart):
-        async with self.stage("prepare"):
+        async with self.stage("preparing"):
             logger.info(f"starting server on {self.host}:{self.port}")
             runner = web.AppRunner(self.wsgi_handler)
             await runner.setup()

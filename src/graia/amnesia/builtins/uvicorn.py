@@ -55,10 +55,10 @@ class UvicornService(Service):
 
     @property
     def stages(self):
-        return {"prepare", "cleanup"}
+        return {"preparing", "cleanup"}
 
     async def launch(self, mgr: Launart):
-        async with self.stage("prepare"):
+        async with self.stage("preparing"):
             asgi_handler = mgr.get_interface(ASGIHandlerProvider).get_asgi_handler()
             self.server = WithoutSigHandlerServer(Config(asgi_handler, host=self.host, port=self.port))
             # TODO: 使用户拥有更多的对 Config 的配置能力.
@@ -69,8 +69,8 @@ class UvicornService(Service):
                 target = logging.getLogger(name)
                 target.handlers = [LoguruHandler(level=level)]
                 target.propagate = False
-        async with self.stage("cleanup"):
             serve_task = asyncio.create_task(self.server.serve())
+        async with self.stage("cleanup"):
             logger.warning("try to shutdown uvicorn server...")
             self.server.should_exit = True
             await wait_fut([serve_task, asyncio.sleep(10)], return_when=asyncio.FIRST_COMPLETED)

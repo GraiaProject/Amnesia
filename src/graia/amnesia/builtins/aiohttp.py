@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import contextlib
 import pathlib
@@ -38,7 +40,7 @@ from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http import AbstractServerRequestIO
 from graia.amnesia.transport.common.http import HttpEndpoint as HttpEndpoint
 from graia.amnesia.transport.common.http.extra import HttpRequest, HttpResponse
-from graia.amnesia.transport.common.http.io import AbstactClientRequestIO
+from graia.amnesia.transport.common.http.io import AbstractClientRequestIO
 from graia.amnesia.transport.common.status import ConnectionStatus
 from graia.amnesia.transport.common.websocket import AbstractWebsocketIO
 from graia.amnesia.transport.common.websocket import (
@@ -84,11 +86,14 @@ class AiohttpConnectionStatus(ConnectionStatus):
             await self.wait_for_update()
 
 
-class ClientRequestIO(AbstactClientRequestIO):
+class ClientRequestIO(AbstractClientRequestIO):
+    rider: ClientConnectionRider[ClientResponse]
     response: ClientResponse
 
-    def __init__(self, response: ClientResponse) -> None:
-        self.response = response
+    def __init__(self, rider: ClientConnectionRider) -> None:
+        assert rider.response
+        self.rider = rider
+        self.response = rider.response
 
     async def read(self) -> bytes:
         return await self.response.read()
@@ -102,12 +107,18 @@ class ClientRequestIO(AbstactClientRequestIO):
                 self.response.url,
             )
 
+    def close(self):
+        self.rider.status.drop = True
+
 
 class ClientWebsocketIO(AbstractWebsocketIO):
+    rider: ClientConnectionRider[ClientWebSocketResponse]
     connection: ClientWebSocketResponse
 
-    def __init__(self, connection: ClientWebSocketResponse) -> None:
-        self.connection = connection
+    def __init__(self, rider: ClientConnectionRider) -> None:
+        assert rider.response
+        self.rider = rider
+        self.connection = rider.response
 
     async def cookies(self) -> Dict[str, str]:
         return {k: v.value for k, v in self.connection._response.cookies.items()}
@@ -164,7 +175,7 @@ P = ParamSpec("P")
 class ClientConnectionRider(TransportRider[str, T], Generic[T]):
     def __init__(
         self,
-        interface: "AiohttpClientInterface",
+        interface: AiohttpClientInterface,
         conn_func: Callable[..., AsyncContextManager[T]],
         call_param: Dict[str, Any],
     ) -> None:
@@ -220,11 +231,10 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
         if not self.status.connected:
             raise RuntimeError("the connection is not ready, please await the instance to ensure connection")
         assert self.response
-        self.status.drop = True
         if isinstance(self.response, ClientWebSocketResponse):
-            return ClientWebsocketIO(self.response)
+            return ClientWebsocketIO(self)
         elif isinstance(self.response, ClientResponse):
-            return ClientRequestIO(self.response)
+            return ClientRequestIO(self)
         else:
             raise TypeError("this response is not a ClientResponse or ClientWebSocketResponse")
 
@@ -246,7 +256,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                     assert isinstance(
                         self.response, ClientWebSocketResponse
                     ), f"{self.response} is not a ClientWebSocketResponse"
-                    io = ClientWebsocketIO(self.response)
+                    io = ClientWebsocketIO(self)
                     await self.trigger_callbacks(WebsocketConnectEvent, io)
                     with contextlib.suppress(ConnectionClosed):
                         async for data in io.packets():
@@ -285,9 +295,9 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
 
 
 class AiohttpClientInterface(ExportInterface["AiohttpService"]):
-    service: "AiohttpService"
+    service: AiohttpService
 
-    def __init__(self, service: "AiohttpService") -> None:
+    def __init__(self, service: AiohttpService) -> None:
         self.service = service
 
     def request(

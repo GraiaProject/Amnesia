@@ -23,7 +23,7 @@ class AbstractServerRequestIO(ReadonlyIO[bytes]):
         return req.cookies
 
 
-class AbstactClientRequestIO(ReadonlyIO[bytes]):
+class AbstractClientRequestIO(ReadonlyIO[bytes]):
     @abstractmethod
     async def read(self) -> bytes:
         raise NotImplementedError

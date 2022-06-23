@@ -27,7 +27,6 @@ from aiohttp import (
     WSMsgType,
     web,
 )
-from launart import ExportInterface, Service
 from launart.manager import Launart
 from launart.utilles import wait_fut
 from loguru import logger
@@ -68,6 +67,7 @@ from graia.amnesia.transport.exceptions import ConnectionClosed
 from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.transport.signature import TransportSignature
 from graia.amnesia.utilles import random_id
+from launart import ExportInterface, Service
 
 
 class AiohttpConnectionStatus(ConnectionStatus):

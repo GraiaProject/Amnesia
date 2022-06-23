@@ -17,5 +17,7 @@
     "Uvicorn",
     "yarl"
   ],
-  "python.analysis.typeCheckingMode": "basic"
+  "python.analysis.typeCheckingMode": "basic",
+  "python.autoComplete.extraPaths": ["__pypackages__/3.9/lib"],
+  "python.analysis.extraPaths": ["__pypackages__/3.9/lib"]
 }

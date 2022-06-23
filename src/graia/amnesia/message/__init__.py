@@ -135,7 +135,7 @@ class MessageChain:
                 list_chains.extend(chain)
 
         for chain in list_chains:
-            if chain is not chains[0]:
+            if chain is not list_chains[0]:
                 result.extend(deepcopy(self.content))
             result.extend(deepcopy(chain.content))
         return self.__class__(result).merge()

@@ -20,7 +20,7 @@ from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http import HttpEndpoint
 from graia.amnesia.transport.common.http.extra import HttpRequest, HttpResponse
 from graia.amnesia.transport.common.http.io import (
-    AbstactClientRequestIO,
+    AbstractClientRequestIO,
     AbstractServerRequestIO,
 )
 from graia.amnesia.transport.common.status import ConnectionStatus

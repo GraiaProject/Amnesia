@@ -38,7 +38,10 @@ from typing_extensions import ParamSpec, Self
 
 from graia.amnesia.json import Json, TJson
 from graia.amnesia.transport import Transport
-from graia.amnesia.transport.common.http import AbstractServerRequestIO
+from graia.amnesia.transport.common.http import (
+    AbstractClientInterface,
+    AbstractServerRequestIO,
+)
 from graia.amnesia.transport.common.http import HttpEndpoint as HttpEndpoint
 from graia.amnesia.transport.common.http.extra import HttpRequest, HttpResponse
 from graia.amnesia.transport.common.http.io import AbstractClientRequestIO
@@ -96,7 +99,7 @@ class ClientRequestIO(AbstractClientRequestIO):
         self.response = rider.response
 
     async def read(self) -> bytes:
-        data=await self.response.read()
+        data = await self.response.read()
         if self.rider.status.connected and not self.rider.status.drop:
             self.close()
         return data
@@ -297,7 +300,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
         return self.task
 
 
-class AiohttpClientInterface(ExportInterface["AiohttpService"]):
+class AiohttpClientInterface(AbstractClientInterface["AiohttpService"]):
     service: AiohttpService
 
     def __init__(self, service: AiohttpService) -> None:

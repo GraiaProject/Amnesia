@@ -96,7 +96,10 @@ class ClientRequestIO(AbstractClientRequestIO):
         self.response = rider.response
 
     async def read(self) -> bytes:
-        return await self.response.read()
+        data=await self.response.read()
+        if self.rider.status.connected and not self.rider.status.drop:
+            self.close()
+        return data
 
     async def extra(self, signature):
         if signature is HttpResponse:

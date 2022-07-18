@@ -89,11 +89,11 @@ class AiohttpConnectionStatus(ConnectionStatus):
             await self.wait_for_update()
 
 
-class ClientRequestIO(AbstractClientRequestIO):
-    rider: ClientConnectionRider[ClientResponse]
+class AiohttpClientRequestIO(AbstractClientRequestIO):
+    rider: AiohttpClientConnectionRider[ClientResponse]
     response: ClientResponse
 
-    def __init__(self, rider: ClientConnectionRider) -> None:
+    def __init__(self, rider: AiohttpClientConnectionRider) -> None:
         assert rider.response
         self.rider = rider
         self.response = rider.response
@@ -117,11 +117,11 @@ class ClientRequestIO(AbstractClientRequestIO):
         self.rider.status.drop = True
 
 
-class ClientWebsocketIO(AbstractWebsocketIO):
-    rider: ClientConnectionRider[ClientWebSocketResponse]
+class AiohttpClientWebsocketIO(AbstractWebsocketIO):
+    rider: AiohttpClientConnectionRider[ClientWebSocketResponse]
     connection: ClientWebSocketResponse
 
-    def __init__(self, rider: ClientConnectionRider) -> None:
+    def __init__(self, rider: AiohttpClientConnectionRider) -> None:
         assert rider.response
         self.rider = rider
         self.connection = rider.response
@@ -178,7 +178,7 @@ T = TypeVar("T", ClientResponse, ClientWebSocketResponse)
 P = ParamSpec("P")
 
 
-class ClientConnectionRider(TransportRider[str, T], Generic[T]):
+class AiohttpClientConnectionRider(TransportRider[str, T], Generic[T]):
     def __init__(
         self,
         interface: AiohttpClientInterface,
@@ -222,11 +222,11 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
         return self._start_conn().__await__()
 
     @overload
-    def io(self: "ClientConnectionRider[ClientResponse]") -> ClientRequestIO:
+    def io(self: "AiohttpClientConnectionRider[ClientResponse]") -> AiohttpClientRequestIO:
         ...
 
     @overload
-    def io(self: "ClientConnectionRider[ClientWebSocketResponse]") -> ClientWebsocketIO:
+    def io(self: "AiohttpClientConnectionRider[ClientWebSocketResponse]") -> AiohttpClientWebsocketIO:
         ...
 
     def io(self, id=None) -> ...:
@@ -238,9 +238,9 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
             raise RuntimeError("the connection is not ready, please await the instance to ensure connection")
         assert self.response
         if isinstance(self.response, ClientWebSocketResponse):
-            return ClientWebsocketIO(self)
+            return AiohttpClientWebsocketIO(self)
         elif isinstance(self.response, ClientResponse):
-            return ClientRequestIO(self)
+            return AiohttpClientRequestIO(self)
         else:
             raise TypeError("this response is not a ClientResponse or ClientWebSocketResponse")
 
@@ -262,7 +262,7 @@ class ClientConnectionRider(TransportRider[str, T], Generic[T]):
                     assert isinstance(
                         self.response, ClientWebSocketResponse
                     ), f"{self.response} is not a ClientWebSocketResponse"
-                    io = ClientWebsocketIO(self)
+                    io = AiohttpClientWebsocketIO(self)
                     await self.trigger_callbacks(WebsocketConnectEvent, io)
                     with contextlib.suppress(ConnectionClosed):
                         async for data in io.packets():
@@ -318,7 +318,7 @@ class AiohttpClientInterface(AbstractClientInterface["AiohttpService"]):
         *,
         json: Optional[TJson] = None,
         **kwargs: Any,
-    ) -> ClientConnectionRider[ClientResponse]:
+    ) -> AiohttpClientConnectionRider[ClientResponse]:
         if json:
             data = Json.serialize(json)
         call_param: Dict[str, Any] = {
@@ -331,11 +331,11 @@ class AiohttpClientInterface(AbstractClientInterface["AiohttpService"]):
             "timeout": timeout,
             **kwargs,
         }
-        return ClientConnectionRider(self, self.service.session.request, call_param)
+        return AiohttpClientConnectionRider(self, self.service.session.request, call_param)
 
-    def websocket(self, url: str, **kwargs) -> ClientConnectionRider[ClientWebSocketResponse]:
+    def websocket(self, url: str, **kwargs) -> AiohttpClientConnectionRider[ClientWebSocketResponse]:
         call_param: Dict[str, Any] = {"url": url, **kwargs}
-        return ClientConnectionRider(self, self.service.session.ws_connect, call_param)
+        return AiohttpClientConnectionRider(self, self.service.session.ws_connect, call_param)
 
 
 class AiohttpService(Service):

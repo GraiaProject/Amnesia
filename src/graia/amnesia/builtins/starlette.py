@@ -5,8 +5,6 @@ from typing import Optional, Union
 from weakref import WeakValueDictionary
 
 import yarl
-from launart import ExportInterface, Service
-from launart.utilles import wait_fut
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse, PlainTextResponse, Response
@@ -17,6 +15,7 @@ from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http import AbstractServerRequestIO
 from graia.amnesia.transport.common.http import HttpEndpoint as HttpEndpoint
 from graia.amnesia.transport.common.http.extra import HttpRequest
+from graia.amnesia.transport.common.server import AbstractRouter, AbstractServerService
 from graia.amnesia.transport.common.websocket import AbstractWebsocketIO
 from graia.amnesia.transport.common.websocket import (
     WebsocketEndpoint as WebsocketEndpoint,
@@ -163,13 +162,13 @@ class StarletteWebsocketIO(AbstractWebsocketIO):
         return self.websocket.application_state == WebSocketState.DISCONNECTED
 
 
-class StarletteRouter(ExportInterface, TransportRider[str, Union[StarletteRequestIO, StarletteWebsocketIO]]):
+class StarletteRouter(AbstractRouter["StarletteService", str, StarletteRequestIO | StarletteWebsocketIO]):
     def __init__(self, starlette: Starlette):
         self.starlette = starlette
         self.connections = WeakValueDictionary()
         self.transports = []
 
-    async def http_request_handler(self, handler, request: Request):
+    async def handle_http_request(self, handler, request: Request):
         io = StarletteRequestIO(request)
         conn_id = random_id()
         self.connections[conn_id] = io
@@ -209,13 +208,7 @@ class StarletteRouter(ExportInterface, TransportRider[str, Union[StarletteReques
 
         return starlette_resp
 
-    async def trigger_callbacks(self, event, *args, **kwargs):
-        callbacks = [i.get_callbacks(event) for i in self.transports if i.has_callback(event)]
-        if callbacks:
-            callbacks = reduce(lambda a, b: a + b, callbacks)
-            await wait_fut([i(*args, **kwargs) for i in callbacks])
-
-    async def websocket_handler(self, ws: WebSocket):
+    async def handle_websocket_request(self, ws: WebSocket):
         io = StarletteWebsocketIO(ws)
         conn_id = random_id()
         self.connections[conn_id] = io
@@ -229,30 +222,22 @@ class StarletteRouter(ExportInterface, TransportRider[str, Union[StarletteReques
         except ConnectionClosed:
             await self.trigger_callbacks(WebsocketCloseEvent, io)
 
-    def io(self, id: Optional[str] = None):
-        if id is None:
-            raise ValueError("id is required")
-
-        return self.connections.get(id)
-
     def use(self, transport: Transport):
         self.transports.append(transport)
 
         for signature, handler in transport.iter_handlers():
             if isinstance(signature, HttpEndpoint):
                 self.starlette.add_route(
-                    signature.path, partial(self.http_request_handler, handler), methods=signature.methods
+                    signature.path, partial(self.handle_http_request, handler), methods=signature.methods
                 )
 
         for signature in transport.declares:
             if isinstance(signature, WebsocketEndpoint):
-                self.starlette.add_websocket_route(signature.path, self.websocket_handler)
+                self.starlette.add_websocket_route(signature.path, self.handle_websocket_request)
 
 
-class StarletteService(Service):
-    id = "http.universal_server"
-    supported_interface_types = {ASGIHandlerProvider, StarletteRouter}
-
+class StarletteService(AbstractServerService):
+    supported_interface_types = {AbstractRouter, ASGIHandlerProvider, StarletteRouter, StarletteServer}
     starlette: Starlette
 
     def __init__(self, starlette: Optional[Starlette] = None) -> None:
@@ -264,7 +249,6 @@ class StarletteService(Service):
             return StarletteServer(self, self.starlette)
         elif issubclass(interface_type, (StarletteRouter)):
             return StarletteRouter(self.starlette)
-        raise ValueError(f"unsupported interface type {interface_type}")
 
     @property
     def stages(self):
@@ -275,4 +259,4 @@ class StarletteService(Service):
         return set()
 
     async def launch(self, _):
-        return
+        pass

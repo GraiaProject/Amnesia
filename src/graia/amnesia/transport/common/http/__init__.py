@@ -25,28 +25,3 @@ class HttpEndpoint(
 
     def __hash__(self) -> int:
         return hash(self.path) + hash(id(self.methods))
-
-
-class AbstractClientInterface(ExportInterface[TService], metaclass=ABCMeta):
-    @abstractmethod
-    def __init__(self, service: TService) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
-    def request(
-        self,
-        method: str,
-        url: str,
-        params: Optional[dict] = None,
-        data: Optional[Any] = None,
-        headers: Optional[dict] = None,
-        cookies: Optional[dict] = None,
-        timeout: Optional[float] = None,
-        *,
-        json: Optional[TJson] = None,
-        **kwargs: Any,
-    ) -> TransportRider:
-        raise NotImplementedError
-
-    def websocket(self, url: str, **kwargs) -> TransportRider:
-        raise NotImplementedError

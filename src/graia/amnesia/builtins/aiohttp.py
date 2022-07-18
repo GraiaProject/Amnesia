@@ -29,7 +29,6 @@ from aiohttp import (
     WSMsgType,
     web,
 )
-from launart import ExportInterface, Service
 from launart.manager import Launart
 from launart.utilles import wait_fut
 from loguru import logger
@@ -38,13 +37,15 @@ from typing_extensions import ParamSpec, Self
 
 from graia.amnesia.json import Json, TJson
 from graia.amnesia.transport import Transport
-from graia.amnesia.transport.common.http import (
+from graia.amnesia.transport.common.client import (
     AbstractClientInterface,
-    AbstractServerRequestIO,
+    AbstractClientService,
 )
+from graia.amnesia.transport.common.http import AbstractServerRequestIO
 from graia.amnesia.transport.common.http import HttpEndpoint as HttpEndpoint
 from graia.amnesia.transport.common.http.extra import HttpRequest, HttpResponse
 from graia.amnesia.transport.common.http.io import AbstractClientRequestIO
+from graia.amnesia.transport.common.server import AbstractRouter, AbstractServerService
 from graia.amnesia.transport.common.status import ConnectionStatus
 from graia.amnesia.transport.common.websocket import AbstractWebsocketIO
 from graia.amnesia.transport.common.websocket import (
@@ -300,10 +301,8 @@ class AiohttpClientConnectionRider(TransportRider[str, T], Generic[T]):
         return self.task
 
 
-class AiohttpClientInterface(AbstractClientInterface["AiohttpService"]):
-    service: AiohttpService
-
-    def __init__(self, service: AiohttpService) -> None:
+class AiohttpClientInterface(AbstractClientInterface["AiohttpClientService"]):
+    def __init__(self, service: AiohttpClientService) -> None:
         self.service = service
 
     def request(
@@ -338,10 +337,9 @@ class AiohttpClientInterface(AbstractClientInterface["AiohttpService"]):
         return AiohttpClientConnectionRider(self, self.service.session.ws_connect, call_param)
 
 
-class AiohttpService(Service):
-    id = "http.universal_client"
+class AiohttpClientService(AbstractClientService):
     session: ClientSession
-    supported_interface_types = {AiohttpClientInterface}
+    supported_interface_types = {AbstractClientInterface, AiohttpClientInterface}
 
     def __init__(self, session: Optional[ClientSession] = None) -> None:
         if TYPE_CHECKING:
@@ -350,7 +348,7 @@ class AiohttpService(Service):
         super().__init__()
 
     def get_interface(self, interface_type):
-        if interface_type is AiohttpClientInterface:
+        if interface_type in self.supported_interface_types:
             return AiohttpClientInterface(self)
 
     @property
@@ -463,10 +461,7 @@ class AiohttpServerWebsocketIO(AbstractWebsocketIO):
         return self.websocket.closed
 
 
-class AiohttpRouter(
-    ExportInterface["AiohttpServerService"],
-    TransportRider[str, Union[AiohttpServerRequestIO, AiohttpServerWebsocketIO]],
-):
+class AiohttpRouter(AbstractRouter["AiohttpServerService", str, AiohttpServerRequestIO | AiohttpServerWebsocketIO]):
     def __init__(self, wsgi: web.Application) -> None:
         self.connections = WeakValueDictionary()
         self.transports = []
@@ -519,18 +514,6 @@ class AiohttpRouter(
         await websocket_io.close()
         return websocket_io.websocket
 
-    async def trigger_callbacks(self, event, *args, **kwargs):
-        callbacks = [i.get_callbacks(event) for i in self.transports if i.has_callback(event)]
-        if callbacks:
-            callbacks = reduce(lambda a, b: a + b, callbacks)
-            await wait_fut([i(*args, **kwargs) for i in callbacks])
-
-    def io(self, id: Optional[str] = None):
-        if id is None:
-            raise ValueError("id is required")
-
-        return self.connections.get(id)
-
     def use(self, transport: Transport):
         self.transports.append(transport)
         for signature, handler in transport.iter_handlers():
@@ -543,10 +526,9 @@ class AiohttpRouter(
                 self.wsgi.router.add_route("GET", signature.path, self.handle_websocket_request)
 
 
-class AiohttpServerService(Service):
-    id = "http.universal_server"
+class AiohttpServerService(AbstractServerService):
     wsgi_handler: web.Application
-    supported_interface_types = {AiohttpRouter}
+    supported_interface_types = {AbstractRouter, AiohttpRouter}
 
     def __init__(
         self, host: str = "127.0.0.1", port: int = 8000, wsgi_handler: Optional[web.Application] = None
@@ -559,7 +541,7 @@ class AiohttpServerService(Service):
         super().__init__()
 
     def get_interface(self, interface_type):
-        if interface_type is AiohttpRouter:
+        if interface_type in self.supported_interface_types:
             router = AiohttpRouter(self.wsgi_handler)
             self.routers.append(router)
             return router

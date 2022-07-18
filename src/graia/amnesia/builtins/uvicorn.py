@@ -30,21 +30,13 @@ class LoguruHandler(logging.Handler):
 
 class WithoutSigHandlerServer(Server):
     def install_signal_handlers(self) -> None:
-        return
+        pass
 
 
 class UvicornService(Service):
-    supported_interface_types = set()
-    supported_description_types = set()
-    id = "http.asgi_runner"
     server: Server
     host: str
     port: int
-
-    def __init__(self, host: str = "127.0.0.1", port: int = 8000):
-        self.host = host
-        self.port = port
-        super().__init__()
 
     def get_interface(self, interface_type):
         pass

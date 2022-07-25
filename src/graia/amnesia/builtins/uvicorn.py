@@ -2,12 +2,12 @@ import asyncio
 import logging
 
 from launart.manager import Launart
-from launart.service import Service
 from launart.utilles import wait_fut
 from loguru import logger
 from uvicorn import Config, Server
 
 from graia.amnesia.builtins.common import ASGIHandlerProvider
+from graia.amnesia.transport.common.asgi import AbstractAsgiService
 
 
 class LoguruHandler(logging.Handler):
@@ -33,10 +33,8 @@ class WithoutSigHandlerServer(Server):
         pass
 
 
-class UvicornService(Service):
+class UvicornService(AbstractAsgiService):
     server: Server
-    host: str
-    port: int
 
     def get_interface(self, interface_type):
         pass

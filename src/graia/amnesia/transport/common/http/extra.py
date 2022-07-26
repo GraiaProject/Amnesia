@@ -1,19 +1,21 @@
-from dataclasses import dataclass
-from typing import Dict, Literal
+from __future__ import annotations
 
-import yarl
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Literal
+
+from yarl import URL
 
 from graia.amnesia.transport.interface import ExtraContent
 
 
 @dataclass
 class HttpRequest(ExtraContent):
-    headers: Dict[str, str]
-    cookies: Dict[str, str]
-    query_params: Dict[str, str]
-    url: yarl.URL
+    headers: dict[str, str]
+    cookies: dict[str, str]
+    query_params: dict[str, str]
+    url: URL
     host: str
-    method: 'Literal["GET", "POST", "PUT", "DELETE"] | str'
+    method: Literal["GET", "POST", "PUT", "DELETE"] | str
     client_ip: str
     client_port: int
 
@@ -21,6 +23,6 @@ class HttpRequest(ExtraContent):
 @dataclass
 class HttpResponse(ExtraContent):
     status: int
-    headers: Dict[str, str]
-    cookies: Dict[str, str]
-    uri: yarl.URL
+    headers: dict[str, str]
+    cookies: dict[str, str]
+    uri: URL

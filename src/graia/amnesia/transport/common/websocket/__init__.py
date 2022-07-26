@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Callable, Final, Generic, List, Literal, TypeVar, Union
+from typing import Final
 
 from graia.amnesia.transport.common.websocket.io import AbstractWebsocketIO
-from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.transport.signature import TransportSignature
 
 from .event import WebsocketCloseEvent as WebsocketCloseEvent
@@ -19,7 +20,7 @@ class WebsocketEndpoint(
     TransportSignature[None],
 ):
     path: str
-    methods: Final[List[str]] = field(default_factory=lambda: ["GET"])
+    methods: Final[list[str]] = field(default_factory=lambda: ["GET"])
     method: Final[str] = "WS"
 
     def __hash__(self) -> int:

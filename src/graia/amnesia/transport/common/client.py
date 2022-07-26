@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
-from launart.service import ExportInterface, Service, TService
+from launart.service import ExportInterface, Service
 
 from graia.amnesia.json import TJson
 from graia.amnesia.transport.rider import TransportRider

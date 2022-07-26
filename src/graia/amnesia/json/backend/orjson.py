@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from functools import partial
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 import orjson
 
@@ -8,14 +10,14 @@ from ..serializers import SERIALIZER_DEFAULT, SERIALIZERS
 
 
 class OrjsonBackend(JSONBackend):
-    def serialize(self, value: Any, *, custom_serializers: Optional[Dict[Type, TJsonCustomSerializer]] = None) -> str:
+    def serialize(self, value: Any, *, custom_serializers: dict[type, TJsonCustomSerializer] | None = None) -> str:
         return self.serialize_as_bytes(value, custom_serializers=custom_serializers).decode("utf-8")
 
     def deserialize(self, value: str) -> TJson:
         return orjson.loads(value)
 
     def serialize_as_bytes(
-        self, value: Any, *, custom_serializers: Optional[Dict[Type, TJsonCustomSerializer]] = None
+        self, value: Any, *, custom_serializers: dict[type, TJsonCustomSerializer] | None = None
     ) -> bytes:
         return orjson.dumps(
             value,

@@ -9,15 +9,13 @@ from launart.service import ExportInterface, Service
 from launart.utilles import wait_fut
 
 from graia.amnesia.transport import Transport
-from graia.amnesia.transport.common.http import HttpEndpoint
 from graia.amnesia.transport.common.http.io import AbstractServerRequestIO
-from graia.amnesia.transport.common.websocket import WebsocketEndpoint
 from graia.amnesia.transport.common.websocket.io import AbstractWebsocketIO
 from graia.amnesia.transport.rider import TransportRider
 
 T = TypeVar("T", bound="AbstractServerService")
 K = TypeVar("K")
-V = TypeVar("V", bound=AbstractServerRequestIO | AbstractWebsocketIO)
+V = TypeVar("V", bound="AbstractServerRequestIO | AbstractWebsocketIO")
 
 
 class AbstractRouter(

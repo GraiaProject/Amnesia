@@ -1,4 +1,6 @@
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 
 class Element:
@@ -8,9 +10,9 @@ class Element:
 
 class Text(Element):
     text: str
-    style: Optional[str]
+    style: str | None
 
-    def __init__(self, text: str, style: Optional[str] = None) -> None:
+    def __init__(self, text: str, style: str | None = None) -> None:
         """实例化一个 Text 消息元素, 用于承载消息中的文字.
 
         Args:

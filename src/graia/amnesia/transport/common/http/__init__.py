@@ -1,13 +1,9 @@
-from abc import ABCMeta, abstractmethod
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
-from typing import Any, Callable, Coroutine, List, Literal, Optional
+from typing import Literal
 
-from launart.service import ExportInterface, TService
-
-from graia.amnesia.json import TJson
 from graia.amnesia.transport.common.http.io import AbstractServerRequestIO
 from graia.amnesia.transport.common.http.responses import T_HttpResponse
-from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.transport.signature import TransportSignature
 
 
@@ -21,7 +17,7 @@ class HttpEndpoint(
     ]
 ):
     path: str
-    methods: List[Literal["GET", "POST", "PUT", "DELETE"]] = field(default_factory=lambda: ["GET"])
+    methods: list[Literal["GET", "POST", "PUT", "DELETE"]] = field(default_factory=lambda: ["GET"])
 
     def __hash__(self) -> int:
         return hash(self.path) + hash(id(self.methods))

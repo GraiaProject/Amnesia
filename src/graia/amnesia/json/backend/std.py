@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import json
 from functools import partial
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 from .. import JSONBackend, TJson, TJsonCustomSerializer
 from ..serializers import SERIALIZER_DEFAULT, SERIALIZERS
 
 
 class StdBackend(JSONBackend):
-    def serialize(self, value: Any, *, custom_serializers: Optional[Dict[Type, TJsonCustomSerializer]] = None) -> str:
+    def serialize(self, value: Any, *, custom_serializers: dict[type, TJsonCustomSerializer] | None = None) -> str:
         return json.dumps(
             value,
             default=partial(

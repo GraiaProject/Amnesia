@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 
@@ -6,8 +8,7 @@ from launart.utilles import wait_fut
 from loguru import logger
 from uvicorn import Config, Server
 
-from graia.amnesia.builtins.common import ASGIHandlerProvider
-from graia.amnesia.transport.common.asgi import AbstractAsgiService
+from graia.amnesia.transport.common.asgi import AbstractAsgiService, ASGIHandlerProvider
 
 
 class LoguruHandler(logging.Handler):

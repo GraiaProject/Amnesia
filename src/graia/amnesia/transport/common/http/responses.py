@@ -1,34 +1,34 @@
-from typing import Any, Dict, Optional, Tuple, TypedDict, Union
+from typing import Any, TypedDict
 
 from typing_extensions import NotRequired, Unpack
 
-T_HttpResponse = Union[Tuple[Any, Unpack[Tuple[Dict[str, Any], ...]]], Any]
+T_HttpResponse = tuple[Any, Unpack[tuple[dict[str, Any], ...]]] | Any
 
 
 def status(code: int):
     return {"status": code}
 
 
-def headers(headers: Dict[str, str]):
+def headers(headers: dict[str, str]):
     return {"headers": headers}
 
 
-def cookies(cookies: Dict[str, str], expires: Optional[int] = None):
+def cookies(cookies: dict[str, str], expires: int | None = None):
     return {"cookies": cookies, "cookie_expires": expires}
 
 
 class HttpServerResponseDescription(TypedDict):
     status: NotRequired[int]
-    headers: NotRequired[Dict[str, str]]
-    cookies: NotRequired[Dict[str, str]]
-    cookie_expires: NotRequired[Optional[int]]
+    headers: NotRequired[dict[str, str]]
+    cookies: NotRequired[dict[str, str]]
+    cookie_expires: NotRequired[int | None]
 
 
 class Response:
     body: Any
     description: HttpServerResponseDescription
 
-    def __init__(self, response_body: Any, *desc: Dict[str, Any]):
+    def __init__(self, response_body: Any, *desc: dict[str, Any]):
         self.body = response_body
         self.description = {}
         for i in desc:

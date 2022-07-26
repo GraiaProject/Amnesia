@@ -1,14 +1,8 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Iterator
 from copy import deepcopy
-from typing import (
-    TYPE_CHECKING,
-    ClassVar,
-    Iterable,
-    Iterator,
-    List,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import TYPE_CHECKING, ClassVar, TypeVar
 
 from typing_extensions import Self
 
@@ -58,19 +52,19 @@ class MessageChain:
 
     """
 
-    __text_element_class__: ClassVar[Type[Text]] = Text
-    content: List[Element]
+    __text_element_class__: ClassVar[type[Text]] = Text
+    content: list[Element]
 
-    def __init__(self, elements: List[Element]):
+    def __init__(self, elements: list[Element]):
         """从传入的序列(可以是元组 tuple, 也可以是列表 list) 创建消息链.
         Args:
-            elements (List[T]): 包含且仅包含消息元素的序列
+            elements (list[T]): 包含且仅包含消息元素的序列
         Returns:
             MessageChain: 以传入的序列作为所承载消息的消息链
         """
         self.content = elements
 
-    def has(self, element_class: Type[Element]) -> bool:
+    def has(self, element_class: type[Element]) -> bool:
         """判断消息链中是否含有特定类型的消息元素
         Args:
             element_class (T): 需要判断的消息元素的类型, 例如 "Text", "Notice", "Image" 等.
@@ -82,29 +76,29 @@ class MessageChain:
     if TYPE_CHECKING:
         E = TypeVar("E", bound=Element)
 
-    def get(self, element_class: "Type[E]") -> "List[E]":
+    def get(self, element_class: "type[E]") -> "list[E]":
         """获取消息链中所有特定类型的消息元素
         Args:
             element_class (T): 指定的消息元素的类型, 例如 "Text", "Notice", "Image" 等.
         Returns:
-            List[T]: 获取到的符合要求的所有消息元素; 另: 可能是空列表([]).
+            list[T]: 获取到的符合要求的所有消息元素; 另: 可能是空列表([]).
         """
         return [i for i in self.content if isinstance(i, element_class)]
 
-    def get_one(self, element_class: "Type[E]", index: int) -> "E":
+    def get_one(self, element_class: "type[E]", index: int) -> "E":
         """获取消息链中第 index + 1 个特定类型的消息元素
         Args:
-            element_class (Type[Element]): 指定的消息元素的类型, 例如 "Text", "Notice", "Image" 等.
+            element_class (type[Element]): 指定的消息元素的类型, 例如 "Text", "Notice", "Image" 等.
             index (int): 索引, 从 0 开始数
         Returns:
             T: 消息链第 index + 1 个特定类型的消息元素
         """
         return self.get(element_class)[index]
 
-    def get_first(self, element_class: "Type[E]") -> "E":
+    def get_first(self, element_class: "type[E]") -> "E":
         """获取消息链中第 1 个特定类型的消息元素
         Args:
-            element_class (Type[Element]): 指定的消息元素的类型, 例如 "Text", "Notice", "Image" 等.
+            element_class (type[Element]): 指定的消息元素的类型, 例如 "Text", "Notice", "Image" 等.
         Returns:
             T: 消息链第 1 个特定类型的消息元素
         """
@@ -117,7 +111,7 @@ class MessageChain:
         """
         return "".join(str(i) for i in self.content)
 
-    def join(self, *chains: Union[Self, Iterable[Self]]) -> Self:
+    def join(self, *chains: Self | Iterable[Self]) -> Self:
         """将多个消息链连接起来, 并在其中插入自身.
 
         Args:
@@ -126,8 +120,8 @@ class MessageChain:
         Returns:
             MessageChain: 连接后的消息链, 已对文本进行合并.
         """
-        result: List[Element] = []
-        list_chains: List[MessageChain] = []
+        result: list[Element] = []
+        list_chains: list[MessageChain] = []
         for chain in chains:
             if isinstance(chain, MessageChain):
                 list_chains.append(chain)
@@ -142,7 +136,7 @@ class MessageChain:
 
     __contains__ = has
 
-    def __getitem__(self, item: Union[Type[Element], slice]):
+    def __getitem__(self, item: type[Element] | slice):
         if isinstance(item, slice):
             return self.__class__(self.content[item])
         elif issubclass(item, Element):
@@ -172,25 +166,25 @@ class MessageChain:
             texts.clear()  # 清空缓存
         return self.__class__(result)
 
-    def exclude(self, *types: Type[Element]) -> Self:
+    def exclude(self, *types: type[Element]) -> Self:
         """将除了在给出的消息元素类型中符合的消息元素重新包装为一个新的消息链
         Args:
-            *types (Type[Element]): 将排除在外的消息元素类型
+            *types (type[Element]): 将排除在外的消息元素类型
         Returns:
             MessageChain: 返回的消息链中不包含参数中给出的消息元素类型
         """
         return self.__class__([i for i in self.content if not isinstance(i, types)])
 
-    def include(self, *types: Type[Element]) -> Self:
+    def include(self, *types: type[Element]) -> Self:
         """将只在给出的消息元素类型中符合的消息元素重新包装为一个新的消息链
         Args:
-            *types (Type[Element]): 将只包含在内的消息元素类型
+            *types (type[Element]): 将只包含在内的消息元素类型
         Returns:
             MessageChain: 返回的消息链中只包含参数中给出的消息元素类型
         """
         return self.__class__([i for i in self.content if isinstance(i, types)])
 
-    def split(self, pattern: str = " ", raw_string: bool = False) -> List[Self]:
+    def split(self, pattern: str = " ", raw_string: bool = False) -> list[Self]:
         """和 `str.split` 差不多, 提供一个字符串, 然后返回分割结果.
 
         Args:
@@ -198,10 +192,10 @@ class MessageChain:
             raw_string (bool): 是否要包含 "空" 的文本元素.
 
         Returns:
-            List[Self]: 分割结果, 行为和 `str.split` 差不多.
+            list[Self]: 分割结果, 行为和 `str.split` 差不多.
         """
 
-        result: List[Self] = []
+        result: list[Self] = []
         tmp = []
         for element in self.content:
             if isinstance(element, Text):
@@ -253,18 +247,18 @@ class MessageChain:
             return False
         return self.content[-1].text.endswith(string)
 
-    def only(self, *element_classes: Type[Element]) -> bool:
+    def only(self, *element_classes: type[Element]) -> bool:
         """判断消息链中是否只含有特定类型元素.
 
         Args:
-            *element_classes (Type[Element]): 元素类型
+            *element_classes (type[Element]): 元素类型
 
         Returns:
             bool: 判断结果
         """
         return all(isinstance(i, element_classes) for i in self.content)
 
-    def append(self, element: Union[Element, str], copy: bool = False) -> Self:
+    def append(self, element: Element | str, copy: bool = False) -> Self:
         """
         向消息链最后追加单个元素
 
@@ -283,14 +277,14 @@ class MessageChain:
 
     def extend(
         self,
-        *content: Union[Self, Element, List[Union[Element, str]]],
+        *content: Self | Element | list[Element | str],
         copy: bool = False,
     ) -> Self:
         """
         向消息链最后添加元素/元素列表/消息链
 
         Args:
-            *content (Union[MessageChain, Element, List[Element]]): 要添加的元素/元素容器.
+            *content (MessageChain | Element | list[Element | str]): 要添加的元素/元素容器.
             copy (bool): 是否要在副本上修改.
 
         Returns:
@@ -324,25 +318,25 @@ class MessageChain:
         """
         return self.__class__(deepcopy(self.content))
 
-    def index(self, element_type: Type[Element]) -> Union[int, None]:
+    def index(self, element_type: type[Element]) -> int | None:
         """
         寻找第一个特定类型的元素, 并返回其下标.
 
         Args:
-            element_type (Type[Element]): 元素或元素类型
+            element_type (type[Element]): 元素或元素类型
 
         Returns:
-            Optional[int]: 元素下标, 若未找到则为 None.
+            int | None: 元素下标, 若未找到则为 None.
 
         """
         return next((i for i, e in enumerate(self.content) if isinstance(e, element_type)), None)
 
-    def count(self, element: Union[Type[Element], Element]) -> int:
+    def count(self, element: type[Element] | Element) -> int:
         """
         统计共有多少个指定的元素.
 
         Args:
-            element (Type[Element] | Element): 元素或元素类型
+            element (type[Element] | Element): 元素或元素类型
 
         Returns:
             int: 元素数量

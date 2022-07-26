@@ -1,17 +1,19 @@
+from __future__ import annotations
+
 import asyncio
-import pathlib
 from functools import partial, reduce
+from pathlib import Path
 from typing import Optional, Union
 from weakref import WeakValueDictionary
 
-import yarl
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from starlette.websockets import WebSocket, WebSocketState
+from yarl import URL
 
-from graia.amnesia.builtins.common import ASGIHandlerProvider
 from graia.amnesia.transport import Transport
+from graia.amnesia.transport.common.asgi import ASGIHandlerProvider
 from graia.amnesia.transport.common.http import AbstractServerRequestIO
 from graia.amnesia.transport.common.http import HttpEndpoint as HttpEndpoint
 from graia.amnesia.transport.common.http.extra import HttpRequest
@@ -36,15 +38,14 @@ from graia.amnesia.transport.common.websocket.operator import (
     WSConnectionClose as WebsocketClose,
 )
 from graia.amnesia.transport.exceptions import ConnectionClosed
-from graia.amnesia.transport.rider import TransportRider
 from graia.amnesia.utilles import random_id
 
 
 class StarletteServer(ASGIHandlerProvider):
     starlette: Starlette
-    service: "StarletteService"
+    service: StarletteService
 
-    def __init__(self, service: "StarletteService", starlette: Starlette):
+    def __init__(self, service: StarletteService, starlette: Starlette):
         self.service = service
         self.starlette = starlette
 
@@ -70,7 +71,7 @@ class StarletteRequestIO(AbstractServerRequestIO):
                 dict(self.request.headers),
                 self.request.cookies,
                 dict(self.request.query_params),
-                yarl.URL.build(
+                URL.build(
                     scheme=url.scheme,
                     user=url.username,
                     password=url.password,
@@ -121,7 +122,7 @@ class StarletteWebsocketIO(AbstractWebsocketIO):
                 dict(self.websocket.headers),
                 self.websocket.cookies,
                 dict(self.websocket.query_params),
-                yarl.URL.build(
+                URL.build(
                     scheme=url.scheme,
                     user=url.username,
                     password=url.password,
@@ -192,7 +193,7 @@ class StarletteRouter(AbstractRouter["StarletteService", str, StarletteRequestIO
             starlette_resp = JSONResponse(
                 response_body, status_code=response_desc.get("status", 200), headers=response_desc.get("headers", {})
             )
-        elif isinstance(response_body, pathlib.Path):
+        elif isinstance(response_body, Path):
             starlette_resp = FileResponse(
                 response_body, status_code=response_desc.get("status", 200), headers=response_desc.get("headers", {})
             )
@@ -245,9 +246,9 @@ class StarletteService(AbstractServerService):
         super().__init__()
 
     def get_interface(self, interface_type):
-        if issubclass(interface_type, (ASGIHandlerProvider)):
+        if issubclass(interface_type, (ASGIHandlerProvider, StarletteServer)):
             return StarletteServer(self, self.starlette)
-        elif issubclass(interface_type, (StarletteRouter)):
+        elif issubclass(interface_type, (AbstractRouter, StarletteRouter)):
             return StarletteRouter(self.starlette)
 
     @property

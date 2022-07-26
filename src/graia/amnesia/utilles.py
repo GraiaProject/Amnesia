@@ -2,31 +2,29 @@ from __future__ import annotations
 
 import random
 import string
-from typing import Callable, Dict, Hashable, List, Set, Tuple, Type, TypeVar, Union
+from collections.abc import Callable
+from typing import Hashable, TypeVar
 
 T = TypeVar("T")
 H = TypeVar("H", bound=Hashable)
 
-PriorityType = Union[
-    Set[T],
-    Dict[T, Union[int, float]],
-    Tuple[
-        Union[
-            Set[T],
-            Dict[T, Union[int, float]],
-        ],
+PriorityType = (
+    set[T]
+    | dict[T, int | float]
+    | tuple[
+        set[T] | dict[T, int | float],
         ...,
-    ],
-]
+    ]
+)
 
 
 def priority_strategy(
-    items: List[T],
+    items: list[T],
     getter: Callable[
         [T],
         PriorityType[H],
     ],
-) -> Dict[H, T]:
+) -> dict[H, T]:
     result = {}
     _cache = {}
 
@@ -39,13 +37,13 @@ def priority_strategy(
         raise ValueError(f"{content} is already existed, and it conflicts with {result[content]}, an unlocated item.")
 
     def _handle(pattern):
-        if isinstance(pattern, Set):
+        if isinstance(pattern, set):
             for content in pattern:
                 if content in _cache:
                     _raise_conflict(content)
                 _cache[content] = ...
                 result[content] = item
-        elif isinstance(pattern, Dict):
+        elif isinstance(pattern, dict):
             for content, priority in pattern.items():
                 if content in _cache:
                     if _cache[content] is ...:
@@ -76,7 +74,7 @@ def priority_strategy(
 T = TypeVar("T")
 
 
-class Registrar(Dict):
+class Registrar(dict):
     def register(self, key):
         def decorator(method):
             self[key] = method
@@ -85,7 +83,7 @@ class Registrar(Dict):
         return decorator
 
     def decorate(self, attr):
-        def decorator(cls: Type[T]) -> Type[T]:
+        def decorator(cls: type[T]) -> type[T]:
             getattr(cls, attr).update(self)
             return cls
 

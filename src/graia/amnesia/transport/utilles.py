@@ -1,12 +1,12 @@
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Type, TypeVar
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from typing_extensions import Concatenate, ParamSpec
 
+from graia.amnesia.transport import Transport
 from graia.amnesia.transport.signature import TransportSignature
-
-if TYPE_CHECKING:
-    from graia.amnesia.transport import Transport
-
 
 P_TransportHandler = ParamSpec("P_TransportHandler")
 
@@ -14,9 +14,9 @@ T_Transport = TypeVar("T_Transport", bound="Transport")
 
 
 class TransportRegistrar:
-    handlers: Dict[TransportSignature, Callable]
-    callbacks: Dict[TransportSignature, List]
-    declares: List[TransportSignature[None]]
+    handlers: dict[TransportSignature, Callable]
+    callbacks: dict[TransportSignature, list]
+    declares: list[TransportSignature[None]]
 
     def __init__(self) -> None:
         self.handlers = {}
@@ -45,7 +45,7 @@ class TransportRegistrar:
         self.declares.append(signature)
         return signature
 
-    def apply(self, transport_class: Type[T_Transport]) -> Type[T_Transport]:
+    def apply(self, transport_class: type[T_Transport]) -> type[T_Transport]:
         transport_class.handlers.update(self.handlers)
         transport_class.callbacks.update(self.callbacks)
         transport_class.declares.extend(self.declares)

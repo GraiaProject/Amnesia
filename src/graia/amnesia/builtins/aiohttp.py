@@ -1,27 +1,16 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
-import pathlib
+from collections.abc import Callable
+from contextlib import AbstractAsyncContextManager, suppress
 from functools import partial, reduce
 from io import IOBase
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    AsyncContextManager,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    TypeVar,
-    Union,
-    overload,
-)
+from pathlib import Path
+from typing import Any, Generic, TypeVar, cast, overload
 from weakref import WeakValueDictionary
 
-import aiohttp
 from aiohttp import (
+    ClientConnectionError,
     ClientResponse,
     ClientSession,
     ClientTimeout,
@@ -127,7 +116,7 @@ class AiohttpClientWebsocketIO(AbstractWebsocketIO):
         self.rider = rider
         self.connection = rider.response
 
-    async def cookies(self) -> Dict[str, str]:
+    async def cookies(self) -> dict[str, str]:
         return {k: v.value for k, v in self.connection._response.cookies.items()}
 
     async def extra(self, signature):
@@ -142,7 +131,7 @@ class AiohttpClientWebsocketIO(AbstractWebsocketIO):
                 self.connection._response.request_info.url,
             )
 
-    async def receive(self) -> Union[bytes, str]:
+    async def receive(self) -> bytes | str:
         msg = await self.connection.receive()
         if msg.type in {WSMsgType.TEXT, WSMsgType.BINARY}:
             return msg.data
@@ -183,12 +172,12 @@ class AiohttpClientConnectionRider(TransportRider[str, T], Generic[T]):
     def __init__(
         self,
         interface: AiohttpClientInterface,
-        conn_func: Callable[..., AsyncContextManager[T]],
-        call_param: Dict[str, Any],
+        conn_func: Callable[..., AbstractAsyncContextManager[T]],
+        call_param: dict[str, Any],
     ) -> None:
-        self.transports: List[Transport] = []
+        self.transports: list[Transport] = []
         self.connections = {}
-        self.response: Optional[T] = None
+        self.response: T | None = None
         self.conn_func = conn_func
         self.call_param = call_param
         self.status = AiohttpConnectionStatus()
@@ -246,7 +235,7 @@ class AiohttpClientConnectionRider(TransportRider[str, T], Generic[T]):
             raise TypeError("this response is not a ClientResponse or ClientWebSocketResponse")
 
     async def trigger_callbacks(self, event: TransportSignature[Callable[P, Any]], *args: P.args, **kwargs: P.kwargs):
-        tasks: List[asyncio.Task] = []
+        tasks: list[asyncio.Task] = []
         for i in self.transports:
             if i.has_callback(event):
                 tasks.extend(asyncio.create_task(f(*args, **kwargs)) for f in i.get_callbacks(event))
@@ -254,9 +243,9 @@ class AiohttpClientConnectionRider(TransportRider[str, T], Generic[T]):
             await task
 
     async def connection_manage(self):
-        __original_transports: List[Transport] = self.transports[:]
+        __original_transports: list[Transport] = self.transports[:]
 
-        with contextlib.suppress(Exception):
+        with suppress(Exception):
             while self.transports and self.interface.service.status.stage != "finished":
                 try:
                     await self._start_conn()
@@ -265,7 +254,7 @@ class AiohttpClientConnectionRider(TransportRider[str, T], Generic[T]):
                     ), f"{self.response} is not a ClientWebSocketResponse"
                     io = AiohttpClientWebsocketIO(self)
                     await self.trigger_callbacks(WebsocketConnectEvent, io)
-                    with contextlib.suppress(ConnectionClosed):
+                    with suppress(ConnectionClosed):
                         async for data in io.packets():
                             await self.trigger_callbacks(WebsocketReceivedEvent, io, data)
                     await self.trigger_callbacks(WebsocketCloseEvent, io)
@@ -274,14 +263,14 @@ class AiohttpClientConnectionRider(TransportRider[str, T], Generic[T]):
                     self.status.drop = True
                     await self.status.wait_for_unavailable()
                     self.connect_task = None
-                except aiohttp.ClientConnectionError as e:
+                except ClientConnectionError as e:
                     logger.warning(repr(e))
                 except Exception as e:
                     logger.exception(e)
                 # scan transports
                 if self.interface.service.status == "cleanup":
                     continue
-                continuing_transports: List[Transport] = self.transports[:]
+                continuing_transports: list[Transport] = self.transports[:]
                 self.transports = []
                 reconnect_handle_tasks = []
                 for t in continuing_transports:
@@ -309,18 +298,18 @@ class AiohttpClientInterface(AbstractClientInterface["AiohttpClientService"]):
         self,
         method: str,
         url: str,
-        params: Optional[dict] = None,
-        data: Optional[Any] = None,
-        headers: Optional[dict] = None,
-        cookies: Optional[dict] = None,
-        timeout: Optional[float] = None,
+        params: dict | None = None,
+        data: Any = None,
+        headers: dict | None = None,
+        cookies: dict | None = None,
+        timeout: float | None = None,
         *,
-        json: Optional[TJson] = None,
+        json: TJson | None = None,
         **kwargs: Any,
     ) -> AiohttpClientConnectionRider[ClientResponse]:
         if json:
             data = Json.serialize(json)
-        call_param: Dict[str, Any] = {
+        call_param: dict[str, Any] = {
             "method": method,
             "url": url,
             "params": params,
@@ -333,7 +322,7 @@ class AiohttpClientInterface(AbstractClientInterface["AiohttpClientService"]):
         return AiohttpClientConnectionRider(self, self.service.session.request, call_param)
 
     def websocket(self, url: str, **kwargs) -> AiohttpClientConnectionRider[ClientWebSocketResponse]:
-        call_param: Dict[str, Any] = {"url": url, **kwargs}
+        call_param: dict[str, Any] = {"url": url, **kwargs}
         return AiohttpClientConnectionRider(self, self.service.session.ws_connect, call_param)
 
 
@@ -341,10 +330,8 @@ class AiohttpClientService(AbstractClientService):
     session: ClientSession
     supported_interface_types = {AbstractClientInterface, AiohttpClientInterface}
 
-    def __init__(self, session: Optional[ClientSession] = None) -> None:
-        if TYPE_CHECKING:
-            session = session or ClientSession()
-        self.session = session
+    def __init__(self, session: ClientSession | None = None) -> None:
+        self.session = cast(ClientSession, session)
         super().__init__()
 
     def get_interface(self, interface_type):
@@ -400,7 +387,7 @@ class AiohttpServerWebsocketIO(AbstractWebsocketIO):
         self.request = request
         self.ready = asyncio.Event()
 
-    async def receive(self) -> Union[str, bytes]:
+    async def receive(self) -> bytes | str:
         try:
             received = await self.websocket.receive()
         except asyncio.CancelledError as e:
@@ -415,7 +402,7 @@ class AiohttpServerWebsocketIO(AbstractWebsocketIO):
             raise ConnectionClosed("Websocket Error") from exc
         raise TypeError(f"Unknown type of received message {received}")
 
-    async def send(self, data: Union[str, bytes, Any]):
+    async def send(self, data: Any):
         if isinstance(data, str):
             await self.websocket.send_str(data)
         elif isinstance(data, bytes):
@@ -447,10 +434,10 @@ class AiohttpServerWebsocketIO(AbstractWebsocketIO):
     async def accept(self):
         return await super().accept()
 
-    async def headers(self) -> Dict[str, str]:
+    async def headers(self) -> dict[str, str]:
         return dict(self.websocket.headers)
 
-    async def cookies(self) -> Dict[str, str]:
+    async def cookies(self) -> dict[str, str]:
         return dict(self.request.cookies)
 
     async def close(self):
@@ -486,7 +473,7 @@ class AiohttpRouter(AbstractRouter["AiohttpServerService", str, AiohttpServerReq
             response = web.Response(body=body, status=status)
         elif isinstance(body, (dict, list)):
             response = web.json_response(body, status=status, headers=resp_info.get("headers"))
-        elif isinstance(body, pathlib.Path):
+        elif isinstance(body, Path):
             response = web.Response(body=body.open("rb"), status=status)
         elif isinstance(body, web.Response):
             response = body
@@ -507,7 +494,7 @@ class AiohttpRouter(AbstractRouter["AiohttpServerService", str, AiohttpServerReq
         await self.trigger_callbacks(WebsocketConnectEvent, websocket_io)
         if websocket_io.closed:
             return websocket_io.websocket
-        with contextlib.suppress(ConnectionClosed):
+        with suppress(ConnectionClosed):
             async for message in websocket_io.packets():
                 await self.trigger_callbacks(WebsocketReceivedEvent, websocket_io, message)
         await self.trigger_callbacks(WebsocketCloseEvent, websocket_io)
@@ -530,12 +517,10 @@ class AiohttpServerService(AbstractServerService):
     wsgi_handler: web.Application
     supported_interface_types = {AbstractRouter, AiohttpRouter}
 
-    def __init__(
-        self, host: str = "127.0.0.1", port: int = 8000, wsgi_handler: Optional[web.Application] = None
-    ) -> None:
+    def __init__(self, host: str = "127.0.0.1", port: int = 8000, wsgi_handler: web.Application | None = None) -> None:
         self.wsgi_handler = wsgi_handler or web.Application()
         self.wsgi_handler.router.freeze = lambda: None  # monkey patch
-        self.routers: List[AiohttpRouter] = []
+        self.routers: list[AiohttpRouter] = []
         self.host = host
         self.port = port
         super().__init__()

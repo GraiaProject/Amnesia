@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 from graia.amnesia.transport.common.http.extra import HttpRequest, HttpResponse
 from graia.amnesia.transport.interface import ReadonlyIO
@@ -14,11 +16,11 @@ class AbstractServerRequestIO(ReadonlyIO[bytes]):
     async def extra(self, signature: Any):
         raise NotImplementedError
 
-    async def headers(self) -> Dict[str, str]:
+    async def headers(self) -> dict[str, str]:
         req: HttpRequest = await self.extra(HttpRequest)
         return req.headers
 
-    async def cookies(self) -> Dict[str, str]:
+    async def cookies(self) -> dict[str, str]:
         req: HttpRequest = await self.extra(HttpRequest)
         return req.cookies
 
@@ -32,10 +34,10 @@ class AbstractClientRequestIO(ReadonlyIO[bytes]):
     async def extra(self, signature: Any):
         raise NotImplementedError
 
-    async def headers(self) -> Dict[str, str]:
+    async def headers(self) -> dict[str, str]:
         req: HttpResponse = await self.extra(HttpResponse)
         return req.headers
 
-    async def cookies(self) -> Dict[str, str]:
+    async def cookies(self) -> dict[str, str]:
         req: HttpResponse = await self.extra(HttpResponse)
         return req.cookies

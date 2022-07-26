@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from abc import ABCMeta, abstractmethod
 from datetime import timedelta
-from typing import Any, Generic, List, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from launart.service import ExportInterface
 
@@ -13,11 +15,11 @@ class Storage(ExportInterface):
 
 class CacheStorage(Storage, Generic[D], metaclass=ABCMeta):
     @abstractmethod
-    async def get(self, key: str, default: Optional[Any] = None) -> D:
+    async def get(self, key: str, default: Any = None) -> D:
         ...
 
     @abstractmethod
-    async def set(self, key: str, value: Any, expire: Optional[timedelta] = None) -> None:
+    async def set(self, key: str, value: Any, expire: timedelta | None = None) -> None:
         ...
 
     @abstractmethod
@@ -33,5 +35,5 @@ class CacheStorage(Storage, Generic[D], metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    async def keys(self) -> List[str]:
+    async def keys(self) -> list[str]:
         ...

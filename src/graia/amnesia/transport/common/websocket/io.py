@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from abc import abstractmethod
-from typing import Any, Type, TypeVar, Union, overload
+from typing import Any, TypeVar, overload
 
 from graia.amnesia.transport.common.websocket.operator import (
     WSConnectionAccept,
@@ -13,9 +15,9 @@ T = TypeVar("T")
 E = TypeVar("E", bound=ExtraContent)
 
 
-class AbstractWebsocketIO(PacketIO[Union[str, bytes]]):
+class AbstractWebsocketIO(PacketIO[str | bytes]):
     @abstractmethod
-    async def receive(self) -> Union[str, bytes]:
+    async def receive(self) -> str | bytes:
         raise NotImplementedError
 
     @overload
@@ -39,12 +41,12 @@ class AbstractWebsocketIO(PacketIO[Union[str, bytes]]):
 
     @overload
     @abstractmethod
-    async def extra(self, signature: "Type[TransportSignature[T]] | TransportSignature[T]") -> T:
+    async def extra(self, signature: type[TransportSignature[T]] | TransportSignature[T]) -> T:
         ...
 
     @overload
     @abstractmethod
-    async def extra(self, signature: "Type[E]") -> E:
+    async def extra(self, signature: type[E]) -> E:
         ...
 
     @abstractmethod

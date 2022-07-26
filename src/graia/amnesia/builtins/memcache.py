@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 from datetime import timedelta
 from heapq import heappop, heappush
 from time import time
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any
 
 from launart import Launart, Service
 
@@ -10,18 +12,18 @@ from graia.amnesia.transport.common.storage import CacheStorage
 
 
 class Memcache(CacheStorage[Any]):
-    cache: Dict[str, Tuple[Optional[float], Any]]
-    expire: List[Tuple[float, str]]
+    cache: dict[str, tuple[float | None, Any]]
+    expire: list[tuple[float, str]]
 
     def __init__(
         self,
-        cache: Dict[str, Tuple[Optional[float], Any]],
-        expire: List[Tuple[float, str]],
+        cache: dict[str, tuple[float | None, Any]],
+        expire: list[tuple[float, str]],
     ):
         self.cache = cache
         self.expire = expire
 
-    async def get(self, key: str, default: Optional[Any] = None) -> Any:
+    async def get(self, key: str, default: Any = None) -> Any:
         value = self.cache.get(key)
         if value:
             if value[0] is None or value[0] >= time():
@@ -30,7 +32,7 @@ class Memcache(CacheStorage[Any]):
                 del self.cache[key]
         return default
 
-    async def set(self, key: str, value: Any, expire: Optional[timedelta] = None) -> None:
+    async def set(self, key: str, value: Any, expire: timedelta | None = None) -> None:
         if expire is None:
             self.cache[key] = (None, value)
             return
@@ -53,7 +55,7 @@ class Memcache(CacheStorage[Any]):
     async def has(self, key: str) -> bool:
         return key in self.cache
 
-    async def keys(self) -> List[str]:
+    async def keys(self) -> list[str]:
         return list(self.cache.keys())
 
 
@@ -62,21 +64,21 @@ class MemcacheService(Service):
     supported_interface_types = {Memcache}, {CacheStorage: 10}
 
     interval: float
-    cache: Dict[str, Tuple[Optional[float], Any]]
-    expire: List[Tuple[float, str]]
+    cache: dict[str, tuple[float | None, Any]]
+    expire: list[tuple[float, str]]
 
     def __init__(
         self,
         interval: float = 0.1,
-        cache: Optional[Dict[str, Tuple[Optional[float], Any]]] = None,
-        expire: Optional[List[Tuple[float, str]]] = None,
+        cache: dict[str, tuple[float | None, Any]] | None = None,
+        expire: list[tuple[float, str]] | None = None,
     ):
         self.interval = interval
         self.cache = cache or {}
         self.expire = expire or []
         super().__init__()
 
-    def get_interface(self, interface_type: Type[Memcache]) -> Memcache:
+    def get_interface(self, interface_type: type[Memcache]) -> Memcache:
         if issubclass(interface_type, (Memcache)):
             return Memcache(self.cache, self.expire)
         raise ValueError(f"unsupported interface type {interface_type}")

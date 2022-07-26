@@ -4,13 +4,13 @@ from collections.abc import Callable, Iterable, Mapping
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Generic, NamedTuple, TypedDict, TypeVar
+from typing import Any, Dict, Generic, NamedTuple, TypedDict, TypeVar
 from uuid import UUID
 
 T = TypeVar("T")
 
 
-class _AmnesiaJsonCustomSerialize(Generic[T], dict[type[T], Callable[[T], Any]]):
+class _AmnesiaJsonCustomSerialize(Generic[T], Dict["type[T]", "Callable[[T], Any]"]):
     def new(self, t: type[T]):
         def decorator(func: Callable[[T], Any]):
             self[t] = func

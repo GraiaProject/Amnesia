@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from collections.abc import Callable
-from typing import Any
+from typing import Any, Callable, Union
 
-TJsonLiteralValue = str | int | float | bool | None
-TJsonKey = str | int
-TJsonStructure = dict[TJsonKey, "TJson"] | list["TJson"] | tuple["TJson", ...]
-TJson = TJsonLiteralValue | TJsonStructure
+TJsonLiteralValue = Union[str, int, float, bool, None]
+TJsonKey = Union[str, int]
+TJsonStructure = Union["dict[TJsonKey, TJson]", "list[TJson]", "tuple[TJson, ...]"]
+TJson = Union[TJsonLiteralValue, TJsonStructure]
 
 TJsonCustomSerializer = Callable[[Any], TJson]
 

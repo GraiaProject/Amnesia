@@ -1,8 +1,10 @@
-from typing import Any, TypedDict
+from __future__ import annotations
+
+from typing import Any, TypedDict, Union
 
 from typing_extensions import NotRequired, Unpack
 
-T_HttpResponse = tuple[Any, Unpack[tuple[dict[str, Any], ...]]] | Any
+T_HttpResponse = Union["tuple[Any, Unpack[tuple[dict[str, Any], ...]]]", Any]
 
 
 def status(code: int):

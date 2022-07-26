@@ -3,19 +3,16 @@ from __future__ import annotations
 import random
 import string
 from collections.abc import Callable
-from typing import Hashable, TypeVar
+from typing import Hashable, TypeVar, Union
 
 T = TypeVar("T")
 H = TypeVar("H", bound=Hashable)
 
-PriorityType = (
-    set[T]
-    | dict[T, int | float]
-    | tuple[
-        set[T] | dict[T, int | float],
-        ...,
-    ]
-)
+PriorityType = Union[
+    "set[T]",
+    "dict[T, int | float]",
+    "tuple[set[T] | dict[T, int | float], ...]",
+]
 
 
 def priority_strategy(

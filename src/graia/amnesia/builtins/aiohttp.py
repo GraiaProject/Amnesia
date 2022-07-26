@@ -448,7 +448,7 @@ class AiohttpServerWebsocketIO(AbstractWebsocketIO):
         return self.websocket.closed
 
 
-class AiohttpRouter(AbstractRouter["AiohttpServerService", str, AiohttpServerRequestIO | AiohttpServerWebsocketIO]):
+class AiohttpRouter(AbstractRouter["AiohttpServerService", str, "AiohttpServerRequestIO | AiohttpServerWebsocketIO"]):
     def __init__(self, wsgi: web.Application) -> None:
         self.connections = WeakValueDictionary()
         self.transports = []

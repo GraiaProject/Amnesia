@@ -15,7 +15,7 @@ T = TypeVar("T")
 E = TypeVar("E", bound=ExtraContent)
 
 
-class AbstractWebsocketIO(PacketIO[str | bytes]):
+class AbstractWebsocketIO(PacketIO["str | bytes"]):
     @abstractmethod
     async def receive(self) -> str | bytes:
         raise NotImplementedError

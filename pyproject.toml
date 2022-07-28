@@ -13,6 +13,7 @@ dependencies = [
     "yarl<2.0.0,>=1.7.2",
     "launart>=0.3.3",
     "statv>=0.2.2",
+    "typing-extensions>=4.0.0",
 ]
 readme = "README.md"
 description = "a collection of shared components for graia"

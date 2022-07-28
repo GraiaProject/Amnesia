@@ -37,9 +37,6 @@ class WithoutSigHandlerServer(Server):
 class UvicornService(AbstractAsgiService):
     server: Server
 
-    def get_interface(self, interface_type):
-        pass
-
     @property
     def required(self):
         return {"http.universal_server"}

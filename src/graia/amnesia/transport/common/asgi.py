@@ -10,10 +10,15 @@ from launart.service import Service
 
 class AbstractAsgiService(Service):
     id = "http.asgi_runner"
+    supported_interface_types = set()
     host: str
     port: int
 
+    def get_interface(self, _):
+        return
+
     def __init__(self, host: str = "127.0.0.1", port: int = 8000):
+        super().__init__()
         self.host = host
         self.port = port
 

@@ -9,9 +9,9 @@ from richuru import install
 
 from graia.amnesia.builtins.aiohttp import (
     AiohttpClientInterface,
+    AiohttpClientService,
     AiohttpRouter,
     AiohttpServerService,
-    AiohttpService,
 )
 from graia.amnesia.builtins.starlette import StarletteRouter, StarletteService
 from graia.amnesia.builtins.uvicorn import UvicornService
@@ -38,7 +38,7 @@ from graia.amnesia.transport.utilles import TransportRegistrar
 
 loop = asyncio.get_event_loop()
 mgr = Launart()
-mgr.add_service(AiohttpService())
+mgr.add_service(AiohttpClientService())
 mgr.add_service(StarletteService())
 mgr.add_service(UvicornService(port=21447))
 # install()
@@ -152,7 +152,7 @@ class Conn(Launchable):
             logger.info("connecting...", style="red")
             ai = mgr.get_interface(AiohttpClientInterface)
             rider = ai.websocket("http://localhost:21447/ws_test")
-            await asyncio.wait(
+            await wait_fut(
                 [rider.use(TestWsClient()), mgr.status.wait_for_sigexit()], return_when=asyncio.FIRST_COMPLETED
             )
 

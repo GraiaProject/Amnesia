@@ -147,6 +147,7 @@ class AiohttpClientWebsocketIO(AbstractWebsocketIO):
     async def wait_for_ready(self):
         if self.closed:
             raise ConnectionClosed("websocket closed")
+        # TODO
 
     async def close(self):
         self.rider.status.connected = False
@@ -298,7 +299,9 @@ class AiohttpClientInterface(AbstractClientInterface["AiohttpClientService"]):
 
 class AiohttpClientService(AbstractClientService):
     session: ClientSession
-    supported_interface_types = {AbstractClientInterface, AiohttpClientInterface}
+    supported_interface_types = {AiohttpClientInterface}, {
+        AbstractClientInterface: 7
+    }  # NOTE: Seems to be the fastest one...
 
     def __init__(self, session: ClientSession | None = None) -> None:
         self.session = cast(ClientSession, session)
@@ -485,7 +488,10 @@ class AiohttpRouter(AbstractRouter["AiohttpServerService", str, "AiohttpServerRe
 
 class AiohttpServerService(AbstractServerService):
     wsgi_handler: web.Application
-    supported_interface_types = {AbstractRouter, AiohttpRouter}
+    supported_interface_types = {
+        AbstractRouter: 4,  # NOTE: Seems slower than Starlette...
+        AiohttpRouter: float("inf"),
+    }
 
     def __init__(self, host: str = "127.0.0.1", port: int = 8000, wsgi_handler: web.Application | None = None) -> None:
         self.wsgi_handler = wsgi_handler or web.Application()

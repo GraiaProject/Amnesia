@@ -238,7 +238,13 @@ class StarletteRouter(AbstractRouter["StarletteService", str, StarletteRequestIO
 
 
 class StarletteService(AbstractServerService):
-    supported_interface_types = {AbstractRouter, ASGIHandlerProvider, StarletteRouter, StarletteServer}
+    supported_interface_types = (
+        {StarletteRouter, StarletteServer},
+        {
+            AbstractRouter: 5,  # NOTE: maybe we should sync `AbstractRouter` value with `ASGIHandlerProvider`...
+            ASGIHandlerProvider: 5,
+        },
+    )
     starlette: Starlette
 
     def __init__(self, starlette: Optional[Starlette] = None) -> None:

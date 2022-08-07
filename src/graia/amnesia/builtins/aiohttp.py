@@ -248,8 +248,9 @@ class AiohttpClientConnectionRider(TransportRider[str, T], Generic[T]):
                     if t.has_handler(WebsocketReconnect):
                         handler = t.get_handler(WebsocketReconnect)
                         tsk = asyncio.create_task(handler(self.status))
-                        tsk.add_done_callback(lambda tsk: self.transports.append(t) if tsk.result() is True else None)
-                        reconnect_handle_tasks.append(tsk)
+                        if not tsk.cancelled():
+                            tsk.add_done_callback(lambda tsk: self.transports.append(t) if tsk.result() is True else None)
+                            reconnect_handle_tasks.append(tsk)
                 await wait_fut(reconnect_handle_tasks)
         self.transports = __original_transports
 

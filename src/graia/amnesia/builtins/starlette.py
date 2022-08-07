@@ -163,7 +163,7 @@ class StarletteWebsocketIO(AbstractWebsocketIO):
         return self.websocket.application_state == WebSocketState.DISCONNECTED
 
 
-class StarletteRouter(AbstractRouter["StarletteService", str, StarletteRequestIO | StarletteWebsocketIO]):
+class StarletteRouter(AbstractRouter["StarletteService", str, "StarletteRequestIO | StarletteWebsocketIO"]):
     def __init__(self, starlette: Starlette):
         self.starlette = starlette
         self.connections = WeakValueDictionary()

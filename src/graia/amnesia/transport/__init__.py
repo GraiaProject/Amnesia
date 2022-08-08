@@ -29,13 +29,13 @@ class Transport:
                 cls.declares.extend(base.declares)
 
     def get_handler(self, signature: TransportSignature[Callable[P, T]]) -> Callable[P, T]:
-        handler = cast(Callable[Concatenate[Transport, P], T] | None, self.handlers.get(signature))
+        handler = cast("Callable[Concatenate[Transport, P], T] | None", self.handlers.get(signature))
         if handler is None:
             raise TypeError(f"{self.__class__.__name__} has no handler for {signature}")
         return partial(handler, self)  # type: ignore
 
     def get_callbacks(self, signature: TransportSignature[Callable[P, T]]) -> list[Callable[P, T]]:
-        callbacks = cast(list[Callable[Concatenate[Self, P], T]] | None, self.callbacks.get(signature))
+        callbacks = cast("list[Callable[Concatenate[Self, P], T]] | None", self.callbacks.get(signature))
         if not callbacks:
             raise TypeError(f"{self.__class__.__name__} has no callback for {signature}")
         return [partial(callback, self) for callback in callbacks]  # type: ignore

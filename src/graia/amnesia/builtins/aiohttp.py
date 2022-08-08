@@ -310,9 +310,8 @@ class AiohttpClientService(AbstractClientService):
         self.session = cast(ClientSession, session)
         super().__init__()
 
-    def get_interface(self, interface_type):
-        if interface_type in self.supported_interface_types:
-            return AiohttpClientInterface(self)
+    def get_interface(self, _):
+        return AiohttpClientInterface(self)
 
     @property
     def stages(self):
@@ -504,11 +503,10 @@ class AiohttpServerService(AbstractServerService):
         self.port = port
         super().__init__()
 
-    def get_interface(self, interface_type):
-        if interface_type in self.supported_interface_types:
-            router = AiohttpRouter(self.wsgi_handler)
-            self.routers.append(router)
-            return router
+    def get_interface(self, _):
+        router = AiohttpRouter(self.wsgi_handler)
+        self.routers.append(router)
+        return router
 
     @property
     def stages(self):

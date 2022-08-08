@@ -78,10 +78,8 @@ class MemcacheService(Service):
         self.expire = expire or []
         super().__init__()
 
-    def get_interface(self, interface_type: type[Memcache]) -> Memcache:
-        if issubclass(interface_type, (Memcache)):
-            return Memcache(self.cache, self.expire)
-        raise ValueError(f"unsupported interface type {interface_type}")
+    def get_interface(self, _) -> Memcache:
+        return Memcache(self.cache, self.expire)
 
     @property
     def required(self):

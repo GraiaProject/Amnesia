@@ -256,6 +256,7 @@ class StarletteService(AbstractServerService):
             return StarletteServer(self, self.starlette)
         elif issubclass(interface_type, (AbstractRouter, StarletteRouter)):
             return StarletteRouter(self.starlette)
+        raise ValueError(f"unsupported interface type {interface_type}")
 
     @property
     def stages(self):

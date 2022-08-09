@@ -28,25 +28,20 @@ class Memcache(CacheStorage[Any]):
         if value:
             if value[0] is None or value[0] >= time():
                 return value[1]
-            else:
-                del self.cache[key]
+            del self.cache[key]
         return default
 
     async def set(self, key: str, value: Any, expire: timedelta | None = None) -> None:
         if expire is None:
             self.cache[key] = (None, value)
-            return
-
-        expire_time = time() + expire.total_seconds()
-        self.cache[key] = (expire_time, value)
-        heappush(self.expire, (expire_time, value))
+        else:
+            expire_time = time() + expire.total_seconds()
+            self.cache[key] = (expire_time, value)
+            heappush(self.expire, (expire_time, key))
 
     async def delete(self, key: str, strict: bool = False) -> None:
-        if key in self.cache:
+        if strict or key in self.cache:
             del self.cache[key]
-
-        elif strict:
-            raise KeyError(key)
 
     async def clear(self) -> None:
         self.cache.clear()
@@ -92,10 +87,7 @@ class MemcacheService(Service):
     async def launch(self, manager: Launart) -> None:
         async with self.stage("blocking"):
             while not manager.status.exiting:
-                if self.expire:
-                    expire_time, key = self.expire[0]
-                    while expire_time <= time():
-                        self.cache.pop(key, None)
-                        heappop(self.expire)
-                        expire_time, key = self.expire[0]
+                while self.expire and self.expire[0][0] <= time():
+                    _, key = heappop(self.expire)
+                    self.cache.pop(key, None)
                 await asyncio.sleep(self.interval)

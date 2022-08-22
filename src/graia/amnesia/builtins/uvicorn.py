@@ -35,11 +35,12 @@ class WithoutSigHandlerServer(Server):
 
 
 class UvicornService(AbstractAsgiService):
+    id = "http.asgi_runner/uvicorn"
     server: Server
 
     @property
     def required(self):
-        return {"http.universal_server"}
+        return {ASGIHandlerProvider}
 
     @property
     def stages(self):

@@ -9,7 +9,6 @@ from launart.service import Service
 
 
 class AbstractAsgiService(Service):
-    id = "http.asgi_runner"
     supported_interface_types = set()
     host: str
     port: int

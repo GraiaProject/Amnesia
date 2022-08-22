@@ -83,7 +83,7 @@ class AiohttpClientRequestIO(AbstractClientRequestIO):
         if signature is HttpResponse:
             return HttpResponse(
                 self.response.status,
-                dict(self.response.headers),
+                dict(self.response.headers.items()),
                 {k: str(v) for k, v in self.response.cookies.items()},
                 self.response.url,
             )
@@ -112,7 +112,7 @@ class AiohttpClientWebsocketIO(AbstractWebsocketIO):
         elif signature is HttpResponse:
             return HttpResponse(
                 self.connection._response.status,
-                dict(self.connection._response.request_info.headers),
+                dict(self.connection._response.request_info.headers.items()),
                 {k: v.value for k, v in self.connection._response.cookies.items()},
                 self.connection._response.request_info.url,
             )
@@ -301,6 +301,7 @@ class AiohttpClientInterface(AbstractClientInterface["AiohttpClientService"]):
 
 
 class AiohttpClientService(AbstractClientService):
+    id = "http.client/aiohttp"
     session: ClientSession
     supported_interface_types = {AiohttpClientInterface}, {
         AbstractClientInterface: 7
@@ -341,9 +342,9 @@ class AiohttpServerRequestIO(AbstractServerRequestIO):
     async def extra(self, signature):
         if signature is HttpRequest:
             return HttpRequest(
-                dict(self.request.headers),
+                dict(self.request.headers.items()),
                 dict(self.request.cookies),
-                dict(self.request.query),
+                dict(self.request.query.items()),
                 self.request.url,
                 self.request.host,
                 self.request.method,
@@ -388,9 +389,9 @@ class AiohttpServerWebsocketIO(AbstractWebsocketIO):
     async def extra(self, signature):
         if signature is HttpRequest:
             return HttpRequest(
-                dict(self.request.headers),
+                dict(self.request.headers.items()),
                 dict(self.request.cookies),
-                dict(self.request.query),
+                dict(self.request.query.items()),
                 self.request.url,
                 self.request.host,
                 self.request.method,
@@ -410,7 +411,7 @@ class AiohttpServerWebsocketIO(AbstractWebsocketIO):
         return await super().accept()
 
     async def headers(self) -> dict[str, str]:
-        return dict(self.websocket.headers)
+        return dict(self.websocket.headers.items())
 
     async def cookies(self) -> dict[str, str]:
         return dict(self.request.cookies)
@@ -489,10 +490,10 @@ class AiohttpRouter(AbstractRouter["AiohttpServerService", str, "AiohttpServerRe
 
 
 class AiohttpServerService(AbstractServerService):
+    id = "http.server/aiohttp"
     wsgi_handler: web.Application
-    supported_interface_types = {
+    supported_interface_types = {AiohttpRouter}, {
         AbstractRouter: 4,  # NOTE: Seems slower than Starlette...
-        AiohttpRouter: float("inf"),
     }
 
     def __init__(self, host: str = "127.0.0.1", port: int = 8000, wsgi_handler: web.Application | None = None) -> None:

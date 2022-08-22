@@ -34,5 +34,4 @@ class AbstractClientInterface(ExportInterface[T], metaclass=ABCMeta):
 
 
 class AbstractClientService(Service, metaclass=ABCMeta):
-    id = "http.universal_client"
     supported_interface_types = {AbstractClientInterface}

@@ -11,7 +11,7 @@ license-expression = "MIT"
 dependencies = [
     "loguru<1.0.0,>=0.6.0",
     "yarl<2.0.0,>=1.7.2",
-    "launart>=0.3.3",
+    "launart>=0.6.0,<1.0.0",
     "statv>=0.2.2",
     "typing-extensions>=4.0.0",
 ]
@@ -28,7 +28,7 @@ starlette = ["starlette<1.0.0,>=0.19.0"]
 uvicorn = ["uvicorn<1.0.0,>=0.17.6"]
 colorful = ["richuru<1.0.0,>=0.1.0"]
 
-[tool.pdm]
+[tool.pdm.build]
 includes = ["src/graia"]
 
 [tool.pdm.dev-dependencies]

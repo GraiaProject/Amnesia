@@ -46,5 +46,4 @@ class AbstractRouter(
 
 
 class AbstractServerService(Service):
-    id = "http.universal_server"
     supported_interface_types = {AbstractRouter}

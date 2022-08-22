@@ -238,6 +238,7 @@ class StarletteRouter(AbstractRouter["StarletteService", str, "StarletteRequestI
 
 
 class StarletteService(AbstractServerService):
+    id = "http.server/starlette"
     supported_interface_types = (
         {StarletteRouter, StarletteServer},
         {

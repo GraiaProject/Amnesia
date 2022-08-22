@@ -55,7 +55,7 @@ class Memcache(CacheStorage[Any]):
 
 
 class MemcacheService(Service):
-    id = "cache.client"
+    id = "cache.client/memcache"
     supported_interface_types = {Memcache}, {CacheStorage: 10}
 
     interval: float

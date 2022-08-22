@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 from copy import deepcopy
-from typing import TYPE_CHECKING, ClassVar, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Sequence, TypeVar, overload
 
 from typing_extensions import Self
 
 from .element import Element, Text
+
+if TYPE_CHECKING:
+    E = TypeVar("E", bound=Element)
 
 
 class MessageChain:
@@ -14,45 +17,44 @@ class MessageChain:
 
     - 你可以通过实例化 `MessageChain` 创建一个消息链
 
-    - `MessageChain.has` 方法可用于判断特定的元素类型是否存在于消息链中
+    - `str(chain)`: 获取字符串形式表示的消息
 
-    - `MessageChain.get` 方法可以获取消息链中的所有特定类型的元素
+    - `has`: 判断特定的内容是否存在于消息链中
 
-    - `MessageChain.get_first` 方法可以获取消息链中的第 1 个特定类型的元素
+    - `get`: 获取消息链中的所有特定类型的元素
 
-    - `MessageChain.get_one` 方法可以获取消息链中的第 index + 1 个特定类型的元素
+    - `get_first`: 获取消息链中的第 1 个特定类型的元素
 
-    - 使用 `str` 函数可以获取到字符串形式表示的消息
+    - `get_one`: 获取消息链中的第 index + 1 个特定类型的元素
 
-    - 使用 `MessageChain(...).join` 方法可以拼接多个消息链并插入指定内容
+    - `merge`: 将消息链中相邻的 Text 元素合并为一个 Text 元素.
 
-    - `MessageChain.merge` 方法可以将消息链中相邻的 Text 元素合并为一个 Text 元素.
+    - `startswith`: 判断消息链是否以指定的文本开头
 
-    - `MessageChain.startswith` 方法可以判断消息链是否以指定的文本开头
+    - `endswith`: 判断消息链是否以指定的文本结尾
 
-    - `MessageChain.endswith` 方法可以判断消息链是否以指定的文本结尾
+    - `include`: 创建只包含指定元素类型的消息链
 
-    - `MessageChain.include` 方法可以创建只包含指定元素类型的消息链
+    - `exclude`: 创建排除指定元素类型的消息链
 
-    - `MessageChain.exclude` 方法可以创建排除指定元素类型的消息链
+    - `split`: 用指定文本将消息链拆分为多个
 
-    - `MessageChain.split` 方法可以用指定文本将消息链拆分为多个
+    - `append`: 将指定的元素添加到消息链的末尾
 
-    - `MessageChain.append` 方法可以将指定的元素添加到消息链的末尾
+    - `extend`: 将指定的序列/消息链添加到消息链的末尾
 
-    - `MessageChain.extend` 方法可以将指定的序列/消息链添加到消息链的末尾
+    - `only`: 检查是否只包含指定元素
 
-    - `MessageChain.only` 可以检查是否只包含指定元素
+    - `index`: 获取指定元素在消息链中的索引
 
-    - `MessageChain.index` 可以获取指定元素在消息链中的索引
+    - `count`: 获取消息链中指定元素的数量
 
-    - `MessageChain.count` 可以获取消息链中指定元素的数量
+    - `copy`: 获取消息链的拷贝
 
-    - `MessageChain.copy` 可以获取消息链的拷贝
+    - `chain.join(chains)`: 拼接多个消息链并插入指定内容
 
     """
 
-    __text_element_class__: ClassVar[type[Text]] = Text
     content: list[Element]
 
     def __init__(self, elements: list[Element]):
@@ -64,28 +66,41 @@ class MessageChain:
         """
         self.content = elements
 
-    def has(self, element_class: type[Element]) -> bool:
-        """判断消息链中是否含有特定类型的消息元素
+    def has(self, item: Element | type[Element] | Self | Sequence[str | Element]) -> bool:
+        """
+        判断消息链中是否含有特定的内容.
+
         Args:
-            element_class (T): 需要判断的消息元素的类型, 例如 "Text", "Notice", "Image" 等.
+            item (Element | type[Element] | Self | Sequence[str | Element]): 需要判断的元素/元素类型/消息链/字符串/元素列表.
+
         Returns:
             bool: 判断结果
         """
-        return element_class in [type(i) for i in self.content]
+        if isinstance(item, type):
+            return item in [type(i) for i in self.content]
+        if isinstance(item, Element):
+            return item in self.merge().content
+        if isinstance(item, (Sequence, MessageChain)):
+            return bool(self.index_sub(item))
 
-    if TYPE_CHECKING:
-        E = TypeVar("E", bound=Element)
+        raise ValueError(f"{item} is not an acceptable argument!")
 
-    def get(self, element_class: "type[E]") -> "list[E]":
-        """获取消息链中所有特定类型的消息元素
-        Args:
-            element_class (T): 指定的消息元素的类型, 例如 "Text", "Notice", "Image" 等.
-        Returns:
-            list[T]: 获取到的符合要求的所有消息元素; 另: 可能是空列表([]).
+    def get(self, element_class: type[E], count: int = -1) -> list[E]:
         """
-        return [i for i in self.content if isinstance(i, element_class)]
+        获取消息链中所有特定类型的消息元素
 
-    def get_one(self, element_class: "type[E]", index: int) -> "E":
+        Args:
+            element_class (type[E]): 指定的消息元素的类型, 例如 "Plain", "At", "Image" 等.
+            count (int, optional): 至多获取的元素个数
+
+        Returns:
+            list[E]: 获取到的符合要求的所有消息元素; 另: 可能是空列表([]).
+        """
+        if count == -1:
+            count = len(self.content)
+        return [i for i in self.content if isinstance(i, element_class)][:count]
+
+    def get_one(self, element_class: type[E], index: int) -> E:
         """获取消息链中第 index + 1 个特定类型的消息元素
         Args:
             element_class (type[Element]): 指定的消息元素的类型, 例如 "Text", "Notice", "Image" 等.
@@ -95,7 +110,7 @@ class MessageChain:
         """
         return self.get(element_class)[index]
 
-    def get_first(self, element_class: "type[E]") -> "E":
+    def get_first(self, element_class: type[E]) -> E:
         """获取消息链中第 1 个特定类型的消息元素
         Args:
             element_class (type[Element]): 指定的消息元素的类型, 例如 "Text", "Notice", "Image" 等.
@@ -136,9 +151,37 @@ class MessageChain:
 
     __contains__ = has
 
-    def __getitem__(self, item: type[Element] | slice):
+    @overload
+    def __getitem__(self, item: type[E]) -> list[E]:
+        ...
+
+    @overload
+    def __getitem__(self, item: int) -> Element:
+        ...
+
+    @overload
+    def __getitem__(self, item: slice) -> Self:
+        ...
+
+    def __getitem__(self, item: type[Element] | int | slice) -> Any:
+        """取出子消息链, 或元素.
+
+        通过 `type` 取出属于 `type` 的元素列表
+
+        通过 `int` 取出对应位置元素.
+
+        通过 `slice` 取出子消息链.
+
+        Args:
+            item (type[Element] | int | slice): 索引项
+
+        Returns:
+            list[Element] | Element | MessageChain: 索引结果.
+        """
         if isinstance(item, slice):
             return self.__class__(self.content[item])
+        if isinstance(item, int):
+            return self.content[item]
         elif issubclass(item, Element):
             return self.get(item)
         else:
@@ -146,6 +189,7 @@ class MessageChain:
 
     def merge(self) -> Self:
         """合并相邻的 Text 项, 并返回一个新的消息链实例
+
         Returns:
             MessageChain: 得到的新的消息链实例, 里面不应存在有任何的相邻的 Text 元素.
         """
@@ -156,13 +200,13 @@ class MessageChain:
         for i in self.content:
             if not isinstance(i, Text):
                 if texts:
-                    result.append(self.__class__.__text_element_class__("".join(texts)))
+                    result.append(__text_element_class__("".join(texts)))
                     texts.clear()  # 清空缓存
                 result.append(i)
             else:
                 texts.append(i.text)
         if texts:
-            result.append(self.__class__.__text_element_class__("".join(texts)))
+            result.append(__text_element_class__("".join(texts)))
             texts.clear()  # 清空缓存
         return self.__class__(result)
 
@@ -205,7 +249,7 @@ class MessageChain:
                         result.append(self.__class__(tmp))
                         tmp = []
                     if split_str or raw_string:
-                        tmp.append(self.__class__.__text_element_class__(split_str))
+                        tmp.append(__text_element_class__(split_str))
             else:
                 tmp.append(element)
         if tmp:
@@ -271,7 +315,7 @@ class MessageChain:
         """
         chain_ref = self.copy() if copy else self
         if isinstance(element, str):
-            element = self.__class__.__text_element_class__(element)
+            element = __text_element_class__(element)
         chain_ref.content.append(element)
         return chain_ref
 
@@ -295,13 +339,13 @@ class MessageChain:
             if isinstance(i, Element):
                 result.append(i)
             elif isinstance(i, str):
-                result.append(self.__class__.__text_element_class__(i))
+                result.append(__text_element_class__(i))
             elif isinstance(i, MessageChain):
                 result.extend(i.content)
             else:
                 for e in i:
                     if isinstance(e, str):
-                        result.append(self.__class__.__text_element_class__(e))
+                        result.append(__text_element_class__(e))
                     else:
                         result.append(e)
         if copy:
@@ -344,3 +388,84 @@ class MessageChain:
         if isinstance(element, Element):
             return sum(i == element for i in self.content)
         return sum(isinstance(i, element) for i in self.content)
+
+    def index_sub(self, sub: MessageChain | Sequence[str | Element]) -> list[int]:
+        """判断消息链是否含有子链. 使用 KMP 算法.
+
+        Args:
+            sub (MessageChain | Sequence[str | Element]): 要判断的子链.
+
+        Returns:
+            List[int]: 所有找到的下标.
+        """
+
+        def unzip(seq: Sequence[str | Element]) -> list[str | Element]:
+            res: list[str | Element] = []
+            for e in seq:
+                if isinstance(e, Text):
+                    res.extend(e.text)
+                elif isinstance(e, str):
+                    res.extend(e)
+                else:
+                    res.append(e)
+            return res
+
+        pattern: list[str | Element] = unzip(sub.content) if isinstance(sub, MessageChain) else unzip(sub)
+
+        match_target: list[str | Element] = unzip(self.content)
+
+        if len(match_target) < len(pattern):
+            return []
+
+        fallback: list[int] = [0 for _ in pattern]
+        current_fb: int = 0  # current fallback index
+        for i in range(1, len(pattern)):
+            while current_fb and pattern[i] != pattern[current_fb]:
+                current_fb = fallback[current_fb - 1]
+            if pattern[i] == pattern[current_fb]:
+                current_fb += 1
+            fallback[i] = current_fb
+
+        match_index: list[int] = []
+        ptr = 0
+        for i, e in enumerate(match_target):
+            while ptr and e != pattern[ptr]:
+                ptr = fallback[ptr - 1]
+            if e == pattern[ptr]:
+                ptr += 1
+            if ptr == len(pattern):
+                match_index.append(i - ptr + 1)
+                ptr = fallback[ptr - 1]
+        return match_index
+
+    def __add__(self, content: MessageChain | list[Element] | Element | str) -> Self:
+        if isinstance(content, str):
+            content = __text_element_class__(content)
+        if isinstance(content, Element):
+            content = [content]
+        if isinstance(content, MessageChain):
+            content = content.content
+        return __message_chain_class__(self.content + content)
+
+    def __radd__(self, content: MessageChain | list[Element] | Element | str) -> Self:
+        if isinstance(content, str):
+            content = __text_element_class__(content)
+        if isinstance(content, Element):
+            content = [content]
+        if isinstance(content, MessageChain):
+            content = content.content
+        return __message_chain_class__(content + self.content)
+
+    def __iadd__(self, content: MessageChain | list[Element] | Element | str) -> Self:
+        if isinstance(content, str):
+            content = __text_element_class__(content)
+        if isinstance(content, Element):
+            content = [content]
+        if isinstance(content, MessageChain):
+            content = content.content
+        self.content.extend(content)
+        return self
+
+
+__message_chain_class__: type[MessageChain] = MessageChain
+__text_element_class__: type[Text] = Text

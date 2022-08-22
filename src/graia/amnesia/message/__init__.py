@@ -47,6 +47,8 @@ class MessageChain:
 
     - `index`: 获取指定元素在消息链中的索引
 
+    - `index_sub`: 搜索子消息链在本消息链的出现位置
+
     - `count`: 获取消息链中指定元素的数量
 
     - `copy`: 获取消息链的拷贝

@@ -264,6 +264,9 @@ class MessageChain:
 
     def __iter__(self) -> Iterator[Element]:
         yield from self.content
+        
+    def __len__(self) -> int:
+        return len(self.content)
 
     def startswith(self, string: str) -> bool:
         """判断消息链是否以给出的字符串开头

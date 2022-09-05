@@ -264,7 +264,7 @@ class MessageChain:
 
     def __iter__(self) -> Iterator[Element]:
         yield from self.content
-        
+
     def __len__(self) -> int:
         return len(self.content)
 

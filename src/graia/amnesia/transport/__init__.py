@@ -35,10 +35,7 @@ class Transport:
         return partial(handler, self)  # type: ignore
 
     def get_callbacks(self, signature: TransportSignature[Callable[P, T]]) -> list[Callable[P, T]]:
-        callbacks = cast("list[Callable[Concatenate[Self, P], T]] | None", self.callbacks.get(signature))
-        if not callbacks:
-            raise TypeError(f"{self.__class__.__name__} has no callback for {signature}")
-        return [partial(callback, self) for callback in callbacks]  # type: ignore
+        return [partial(callback, self) for callback in self.callbacks.get(signature, ())]  # type: ignore
 
     def has_handler(self, signature: TransportSignature[Callable]) -> bool:
         return signature in self.handlers

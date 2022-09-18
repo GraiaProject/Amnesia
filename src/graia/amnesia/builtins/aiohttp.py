@@ -60,7 +60,6 @@ from graia.amnesia.transport.common.websocket.operator import (
 )
 from graia.amnesia.transport.exceptions import ConnectionClosed
 from graia.amnesia.transport.rider import TransportRider
-from graia.amnesia.transport.signature import TransportSignature
 from graia.amnesia.utilles import random_id
 
 
@@ -208,14 +207,6 @@ class AiohttpClientConnectionRider(TransportRider[str, T], Generic[T]):
             return AiohttpClientRequestIO(self)
         else:
             raise TypeError("this response is not a ClientResponse or ClientWebSocketResponse")
-
-    async def trigger_callbacks(self, event: TransportSignature[Callable[P, Any]], *args: P.args, **kwargs: P.kwargs):
-        tasks: list[asyncio.Task] = []
-        for i in self.transports:
-            if i.has_callback(event):
-                tasks.extend(asyncio.create_task(f(*args, **kwargs)) for f in i.get_callbacks(event))
-        for task in tasks:
-            await task
 
     async def connection_manage(self):
         __original_transports: list[Transport] = self.transports[:]

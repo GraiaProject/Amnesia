@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable
-from functools import reduce
 from typing import Any, TypeVar
 
 from launart.service import ExportInterface, Service
-from launart.utilles import wait_fut
 
 from graia.amnesia.transport import Transport
 from graia.amnesia.transport.common.http.io import AbstractServerRequestIO
@@ -34,12 +32,6 @@ class AbstractRouter(
     @abstractmethod
     def use(self, transport: Transport):
         raise NotImplementedError
-
-    async def trigger_callbacks(self, event, *args, **kwargs):
-        callbacks = [i.get_callbacks(event) for i in self.transports if i.has_callback(event)]
-        if callbacks:
-            callbacks = reduce(lambda a, b: a + b, callbacks)
-            await wait_fut([i(*args, **kwargs) for i in callbacks])
 
     def io(self, id: K):
         return self.connections.get(id)

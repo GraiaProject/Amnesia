@@ -55,6 +55,12 @@ class MessageChain:
 
     - `chain.join(chains)`: 拼接多个消息链并插入指定内容
 
+    - `removeprefix`: 尝试移除前缀
+
+    - `removesuffix`: 尝试移除后缀
+
+    - `replace`: 替换消息链的一部分
+
     """
 
     content: list[Element]
@@ -442,6 +448,103 @@ class MessageChain:
                 match_index.append(i - ptr + 1)
                 ptr = fallback[ptr - 1]
         return match_index
+
+    def removeprefix(self, prefix: str, *, copy: bool = True) -> Self:
+        """移除消息链前缀.
+
+        Args:
+            prefix (str): 要移除的前缀.
+            copy (bool, optional): 是否在副本上修改, 默认为 True.
+
+        Returns:
+            MessageChain: 修改后的消息链, 若未移除则原样返回.
+        """
+        elements = deepcopy(self.content) if copy else self.content
+        if not elements or not isinstance(elements[0], Text):
+            return self.copy() if copy else self
+        if elements[0].text.startswith(prefix):
+            elements[0].text = elements[0].text[len(prefix) :]
+        if copy:
+            return self.__class__(elements)
+        self.content.clear()
+        self.content.extend(elements)
+        return self
+
+    def removesuffix(self, suffix: str, *, copy: bool = True) -> Self:
+        """移除消息链后缀.
+
+        Args:
+            suffix (str): 要移除的后缀.
+            copy (bool, optional): 是否在副本上修改, 默认为 True.
+
+        Returns:
+            MessageChain: 修改后的消息链, 若未移除则原样返回.
+        """
+        elements = deepcopy(self.content) if copy else self.content
+        if not elements or not isinstance(elements[-1], Text):
+            return self.copy() if copy else self
+        last_elem: Text = elements[-1]
+        if last_elem.text.endswith(suffix):
+            last_elem.text = last_elem.text[: -len(suffix)]
+        if copy:
+            return self.__class__(elements)
+        self.content.clear()
+        self.content.extend(elements)
+        return self
+
+    def replace(
+        self,
+        old: MessageChain | list[Element],
+        new: MessageChain | list[Element],
+    ) -> Self:
+        """替换消息链中的一部分. (在副本上操作)
+
+        Args:
+            old (MessageChain): 要替换的消息链.
+            new (MessageChain): 替换后的消息链.
+
+        Returns:
+            MessageChain: 修改后的消息链, 若未替换则原样返回.
+        """
+        if not isinstance(old, MessageChain):
+            old = MessageChain(old)
+        if not isinstance(new, MessageChain):
+            new = MessageChain(new)
+        index_list: list[int] = self.index_sub(old)
+
+        def unzip(chain: Self) -> list[str | Element]:
+            unzipped: list[str | Element] = []
+            for e in chain.content:
+                if isinstance(e, Text):
+                    unzipped.extend(e.text)
+                else:
+                    unzipped.append(e)
+            return unzipped
+
+        unzipped_new: list[str | Element] = unzip(new)
+        unzipped_old: list[str | Element] = unzip(old)
+        unzipped_self: list[str | Element] = unzip(self)
+        unzipped_result: list[str | Element] = []
+        last_end: int = 0
+        for start in index_list:
+            unzipped_result.extend(unzipped_self[last_end:start])
+            last_end = start + len(unzipped_old)
+            unzipped_result.extend(unzipped_new)
+        unzipped_result.extend(unzipped_self[last_end:])
+
+        # Merge result
+        result_list: list[Element] = []
+        char_stk: list[str] = []
+        for v in unzipped_result:
+            if isinstance(v, str):
+                char_stk.append(v)
+            else:
+                result_list.append(__text_element_class__("".join(char_stk)))
+                char_stk = []
+                result_list.append(v)
+        if char_stk:
+            result_list.append(__text_element_class__("".join(char_stk)))
+        return self.__class__(result_list)
 
     def __add__(self, content: MessageChain | list[Element] | Element | str) -> Self:
         if isinstance(content, str):

@@ -2,12 +2,12 @@
 # PEP 621 project metadata
 # See https://www.python.org/dev/peps/pep-0621/
 name = "graia-amnesia"
-version = "0.6.0"
+version = "0.7.0"
 authors = [
     {name = "GreyElaina", email = "GreyElaina@outlook.com"},
 ]
 requires-python = ">=3.8,<4.0"
-license-expression = "MIT"
+license = {text = "MIT"}
 dependencies = [
     "loguru<1.0.0,>=0.6.0",
     "yarl<2.0.0,>=1.7.2",

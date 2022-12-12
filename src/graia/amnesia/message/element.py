@@ -50,6 +50,9 @@ class Text(Element):
     def __str__(self) -> str:
         return self.text
 
+    def __repr__(self) -> str:
+        return f"Text(text={self.text}{f', style={self.style}' if self.style else ''})"
+
 
 class Unknown(Element):
     type: str
@@ -61,3 +64,6 @@ class Unknown(Element):
 
     def __str__(self) -> str:
         return f"[$Unknown:type={self.type}]"
+
+    def __repr__(self) -> str:
+        return f"Unknown(type={self.type}, raw=<{self.raw_data.__class__.__name__}>)"

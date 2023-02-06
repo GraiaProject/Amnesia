@@ -11,6 +11,7 @@ from graia.amnesia.transport.signature import TransportSignature
 P = ParamSpec("P")
 T = TypeVar("T")
 
+
 # TODO: 连接内简易触发器, 用于通知错误之类的, 或者是 req-res on ws 这种模式上的.
 class Transport:
     handlers: dict[TransportSignature, Callable] = {}

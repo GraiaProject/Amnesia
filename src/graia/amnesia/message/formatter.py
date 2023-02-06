@@ -9,7 +9,6 @@ from graia.amnesia.message.element import Element
 
 
 class Formatter:
-
     format_string: str
     __message_chain_class__: ClassVar[type[MessageChain]] = MessageChain
 

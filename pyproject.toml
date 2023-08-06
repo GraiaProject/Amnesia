@@ -2,17 +2,14 @@
 # PEP 621 project metadata
 # See https://www.python.org/dev/peps/pep-0621/
 name = "graia-amnesia"
-version = "0.7.1"
+version = "0.8.0"
 authors = [
     {name = "GreyElaina", email = "GreyElaina@outlook.com"},
 ]
 requires-python = ">=3.8,<4.0"
 license = {text = "MIT"}
 dependencies = [
-    "loguru<1.0.0,>=0.6.0",
-    "yarl<2.0.0,>=1.7.2",
-    "launart>=0.6.0,<1.0.0",
-    "statv>=0.2.2",
+    "launart>=0.7.0,<1.0.0",
     "typing-extensions>=4.0.0",
 ]
 readme = "README.md"
@@ -21,31 +18,18 @@ description = "a collection of shared components for graia"
 [project.urls]
 
 [project.optional-dependencies]
-ujson = ["ujson<6.0.0,>=5.2.0"]
-orjson = ["orjson<4.0.0,>=3.6.7"]
-aiohttp = ["aiohttp<4.0.0,>=3.8.1"]
-starlette = ["starlette<1.0.0,>=0.19.0"]
-uvicorn = ["uvicorn<1.0.0,>=0.17.6"]
-colorful = ["richuru<1.0.0,>=0.1.0"]
 
 [tool.pdm.build]
 includes = ["src/graia"]
 
 [tool.pdm.dev-dependencies]
 dev = [
-    "aiohttp<4.0.0,>=3.8.1",
     "black<23.0.0,>=22.1.0",
-    "starlette<1.0.0,>=0.19.0",
-    "uvicorn[standard]>=0.17.6",
-    "richuru<1.0.0,>=0.1.0",
-    "isort>=5.10.1",
 ]
-[build-system]
-requires = ["pdm-pep517"]
-build-backend = "pdm.pep517.api"
 
-[tool.isort]
-profile = "black"
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
 
 [tool.black]
 line_length = 120

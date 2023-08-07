@@ -366,6 +366,16 @@ class MessageChain:
         self.content.extend(result)
         return self
 
+    def empty(self) -> bool:
+        """
+        判断消息链是否为空，包括判断是否仅包含空字符串。
+
+        Returns:
+            bool: 判断结果。
+        """
+
+        return bool(self.content and str(self))
+
     def copy(self) -> Self:
         """
         拷贝本消息链.
@@ -575,3 +585,6 @@ class MessageChain:
             content = content.content
         self.content.extend(content)
         return self
+
+    def __bool__(self):
+        return self.empty()

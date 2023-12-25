@@ -1,15 +1,6 @@
 import sys
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    Iterable,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import (Any, Awaitable, Callable, Dict, Iterable, Optional, Tuple,
+                    Type, Union)
 
 if sys.version_info >= (3, 8):
     from typing import Literal, Protocol, TypedDict
@@ -256,9 +247,7 @@ class ASGI2Protocol(Protocol):
     def __init__(self, scope: Scope) -> None:
         ...
 
-    async def __call__(
-        self, receive: ASGIReceiveCallable, send: ASGISendCallable
-    ) -> None:
+    async def __call__(self, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
         ...
 
 

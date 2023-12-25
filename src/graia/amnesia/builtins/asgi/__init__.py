@@ -3,11 +3,10 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from loguru import logger
-from uvicorn import Config, Server
-
 from launart import Launart, Service
 from launart.utilles import any_completed
+from loguru import logger
+from uvicorn import Config, Server
 
 from . import asgitypes
 from .middleware import DispatcherMiddleware

@@ -23,7 +23,7 @@ class DispatcherMiddleware:
                     scope["path"] = scope["path"][len(path) :] or "/"
                     return await app(scope, receive, send)
 
-            if scope['type'] == "http":
+            if scope["type"] == "http":
                 await send(
                     {
                         "type": "http.response.start",
@@ -32,10 +32,8 @@ class DispatcherMiddleware:
                     }
                 )
                 await send({"type": "http.response.body"})
-            elif scope['type'] == "websocket":
-                await send({
-                    "type": "websocket.close"
-                })
+            elif scope["type"] == "websocket":
+                await send({"type": "websocket.close"})
 
     async def _handle_lifespan(
         self,
@@ -50,11 +48,15 @@ class DispatcherMiddleware:
         tasks = []
         try:
             for path, app in self.mounts.items():
-                tasks.append(asyncio.create_task(app(
-                    scope,
-                    self.app_queues[path].get,
-                    functools.partial(self.send, path, send),  # type: ignore
-                )))
+                tasks.append(
+                    asyncio.create_task(
+                        app(
+                            scope,
+                            self.app_queues[path].get,
+                            functools.partial(self.send, path, send),  # type: ignore
+                        )
+                    )
+                )
 
             while True:
                 message = await receive()

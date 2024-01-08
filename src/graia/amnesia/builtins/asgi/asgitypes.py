@@ -1,18 +1,5 @@
 import sys
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    Iterable,
-    Literal,
-    Optional,
-    Protocol,
-    Tuple,
-    TypedDict,
-    Type,
-    Union,
-)
+from typing import Any, Awaitable, Callable, Dict, Iterable, Literal, Optional, Protocol, Tuple, Type, TypedDict, Union
 
 if sys.version_info >= (3, 11):
     from typing import NotRequired

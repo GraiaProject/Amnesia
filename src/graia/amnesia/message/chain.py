@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Sequence, TypeVar, overload
-
 from typing_extensions import Self
 
 from .element import Element, Text

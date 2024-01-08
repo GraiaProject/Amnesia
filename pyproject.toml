@@ -11,10 +11,41 @@ license = {text = "MIT"}
 dependencies = [
     "launart>=0.7.0,<1.0.0",
     "typing-extensions>=4.0.0",
-    "uvicorn>=0.23.2",
 ]
 readme = "README.md"
 description = "a collection of shared components for graia"
+
+[project.optional-dependencies]
+asgi = [
+    "uvicorn>=0.23.2",
+]
+httpx = [
+    "httpx>=0.26.0",
+]
+aiohttp = [
+    "aiohttp>=3.9.1",
+]
+sqla = [
+    "sqlalchemy>=2.0.25",
+]
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip_gitignore = true
+force_sort_within_sections = false
+extra_standard_library = ["typing_extensions"]
+
+[tool.black]
+line_length = 120
+target-version = ["py38", "py39", "py310", "py311"]
+include = '\.pyi?$'
+extend-exclude = '''
+'''
 
 [tool.pdm.build]
 includes = ["src/graia"]
@@ -22,11 +53,9 @@ includes = ["src/graia"]
 [tool.pdm.dev-dependencies]
 dev = [
     "black<23.0.0,>=22.1.0",
+    "uvicorn>=0.23.2",
+    "aiohttp>=3.9.1",
+    "httpx>=0.26.0",
+    "sqlalchemy>=2.0.25",
+    "isort>=5.13.2",
 ]
-
-[build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
-
-[tool.black]
-line_length = 120

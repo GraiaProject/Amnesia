@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from loguru import logger
 from launart import Launart, Service
 from launart.utilles import any_completed
+from loguru import logger
 
 try:
     from uvicorn import Config, Server

@@ -54,6 +54,12 @@ class MessageChain:
 
     - `chain.join(chains)`: 拼接多个消息链并插入指定内容
 
+    - `strip`: 删除前导和尾随空白字符。如果给出了 elements 而不是 None，则依据 elements 中的字符或元素进行删除。
+
+    - `lstrip`: 删除前导空白字符。如果给出了 elements 而不是 None，则依据 elements 中的字符或元素进行删除。
+
+    - `rstrip`: 删除尾随空白字符。如果给出了 elements 而不是 None，则依据 elements 中的字符或元素进行删除。
+
     - `removeprefix`: 尝试移除前缀
 
     - `removesuffix`: 尝试移除后缀
@@ -74,10 +80,13 @@ class MessageChain:
             MessageChain: 以传入的序列作为所承载消息的消息链
         """
         self.content = []
-        for element in elements:
-            if isinstance(element, str):
-                element = self._text_class(element)
-            self.content.append(element)
+        if isinstance(elements, str):
+            self.content.append(self._text_class(elements))
+        else:
+            for element in elements:
+                if isinstance(element, str):
+                    element = self._text_class(element)
+                self.content.append(element)
 
     def has(self, item: Element | type[Element] | Self | Sequence[str | Element]) -> bool:
         """
@@ -200,8 +209,8 @@ class MessageChain:
         else:
             raise NotImplementedError("{0} is not allowed for item getting".format(type(item)))
 
-    def merge(self) -> Self:
-        """合并相邻的 Text 项, 并返回一个新的消息链实例
+    def merge(self, *, copy: bool = True) -> Self:
+        """合并相邻的 Text 项, 选择返回一个新的消息链实例
 
         Returns:
             MessageChain: 得到的新的消息链实例, 里面不应存在有任何的相邻的 Text 元素.
@@ -221,7 +230,11 @@ class MessageChain:
         if texts:
             result.append(self._text_class("".join(texts)))
             texts.clear()  # 清空缓存
-        return self.__class__(result)
+        if copy:
+            return self.__class__(result)
+        self.content.clear()
+        self.content.extend(result)
+        return self
 
     def exclude(self, *types: type[Element]) -> Self:
         """将除了在给出的消息元素类型中符合的消息元素重新包装为一个新的消息链
@@ -377,7 +390,7 @@ class MessageChain:
             bool: 判断结果。
         """
 
-        return bool(self.content and str(self))
+        return not bool(self.content and str(self))
 
     def copy(self) -> Self:
         """
@@ -475,10 +488,15 @@ class MessageChain:
             MessageChain: 修改后的消息链, 若未移除则原样返回.
         """
         elements = deepcopy(self.content) if copy else self.content
-        if not elements or not isinstance(elements[0], Text):
+        if not elements:
             return self.copy() if copy else self
-        if elements[0].text.startswith(prefix):
-            elements[0].text = elements[0].text[len(prefix) :]
+        elem = elements[0]
+        if not isinstance(elem, Text):
+            return self.copy() if copy else self
+        if elem.text.startswith(prefix):
+            elem.text = elem.text[len(prefix) :]
+            if not elem.text:
+                elements.pop(0)
         if copy:
             return self.__class__(elements)
         self.content.clear()
@@ -496,15 +514,72 @@ class MessageChain:
             MessageChain: 修改后的消息链, 若未移除则原样返回.
         """
         elements = deepcopy(self.content) if copy else self.content
-        if not elements or not isinstance(elements[-1], Text):
+        if not elements:
             return self.copy() if copy else self
-        last_elem: Text = elements[-1]
-        if last_elem.text.endswith(suffix):
-            last_elem.text = last_elem.text[: -len(suffix)]
+        elem = elements[-1]
+        if not isinstance(elem, Text):
+            return self.copy() if copy else self
+        if elem.text.endswith(suffix):
+            elem.text = elem.text[: -len(suffix)]
+            if not elem.text:
+                elements.pop(-1)
         if copy:
             return self.__class__(elements)
         self.content.clear()
         self.content.extend(elements)
+        return self
+
+    def strip(self, *elements: str | type[Element] | Element, copy: bool = True) -> Self:
+        return self.lstrip(*elements, copy=copy).rstrip(*elements, copy=copy)
+
+    def lstrip(self, *elements: str | type[Element] | Element, copy: bool = True) -> Self:
+        types = [i for i in elements if not isinstance(i, str)] or []
+        chars = "".join([i for i in elements if isinstance(i, str)]) or None
+        content = deepcopy(self.content) if copy else self.content
+        if not content:
+            return self.copy() if copy else self
+        while content:
+            elem = content[0]
+            if elem in types or elem.__class__ in types:
+                content.pop(0)
+            elif isinstance(elem, Text):
+                text = elem.text.lstrip(chars)
+                if not text:
+                    content.pop(0)
+                    continue
+                elem.text = text
+                break
+            else:
+                break
+        if copy:
+            return self.__class__(content)
+        self.content.clear()
+        self.content.extend(content)
+        return self
+
+    def rstrip(self, *elements: str | type[Element] | Element, copy: bool = True) -> Self:
+        types = [i for i in elements if not isinstance(i, str)] or []
+        chars = "".join([i for i in elements if isinstance(i, str)]) or None
+        content = deepcopy(self.content) if copy else self.content
+        if not content:
+            return self.copy() if copy else self
+        while content:
+            elem = content[-1]
+            if elem in types or elem.__class__ in types:
+                content.pop(-1)
+            elif isinstance(elem, Text):
+                text = elem.text.rstrip(chars)
+                if not text:
+                    content.pop(-1)
+                    continue
+                elem.text = text
+                break
+            else:
+                break
+        if copy:
+            return self.__class__(content)
+        self.content.clear()
+        self.content.extend(content)
         return self
 
     def replace(
@@ -590,4 +665,9 @@ class MessageChain:
         return self
 
     def __bool__(self):
-        return self.empty()
+        return bool(self.content and str(self))
+
+    def __eq__(self, other):
+        if not isinstance(other, MessageChain):
+            return False
+        return other.content == self.content

@@ -58,4 +58,5 @@ dev = [
     "httpx>=0.26.0",
     "sqlalchemy>=2.0.25",
     "isort>=5.13.2",
+    "pytest>=7.4.4",
 ]

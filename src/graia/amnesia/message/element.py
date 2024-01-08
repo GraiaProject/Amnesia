@@ -34,6 +34,11 @@ class Element:
             content = content.content
         return self._chain_class([self] + content)
 
+    def __eq__(self, other):
+        if not isinstance(other, Element):
+            return False
+        return vars(self) == vars(other)
+
 
 class Text(Element):
     text: str

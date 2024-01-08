@@ -67,14 +67,18 @@ class MessageChain:
 
     content: list[Element]
 
-    def __init__(self, elements: list[Element]):
+    def __init__(self, elements: Sequence[str | Element]):
         """从传入的序列(可以是元组 tuple, 也可以是列表 list) 创建消息链.
         Args:
-            elements (list[T]): 包含且仅包含消息元素的序列
+            elements (Sequence[str | Element]): 包含且仅包含消息元素和字符串的序列
         Returns:
             MessageChain: 以传入的序列作为所承载消息的消息链
         """
-        self.content = elements
+        self.content = []
+        for element in elements:
+            if isinstance(element, str):
+                element = self._text_class(element)
+            self.content.append(element)
 
     def has(self, item: Element | type[Element] | Self | Sequence[str | Element]) -> bool:
         """
@@ -524,7 +528,7 @@ class MessageChain:
             new = MessageChain(new)
         index_list: list[int] = self.index_sub(old)
 
-        def unzip(chain: Self) -> list[str | Element]:
+        def unzip(chain: MessageChain) -> list[str | Element]:
             unzipped: list[str | Element] = []
             for e in chain.content:
                 if isinstance(e, Text):

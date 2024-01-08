@@ -7,7 +7,9 @@ from launart import Launart, Service
 try:
     from aiohttp import ClientSession, ClientTimeout
 except ImportError:
-    raise ImportError("dependency 'aiohttp' is required for aiohttp client service\nplease install it or install 'graia-amnesia[aiohttp]'")
+    raise ImportError(
+        "dependency 'aiohttp' is required for aiohttp client service\nplease install it or install 'graia-amnesia[aiohttp]'"
+    )
 
 
 class AiohttpClientService(Service):

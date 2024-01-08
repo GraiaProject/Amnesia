@@ -7,7 +7,9 @@ from launart import Launart, Service
 try:
     from httpx import AsyncClient, Timeout
 except ImportError:
-    raise ImportError("dependency 'httpx' is required for httpx client service\nplease install it or install 'graia-amnesia[httpx]'")
+    raise ImportError(
+        "dependency 'httpx' is required for httpx client service\nplease install it or install 'graia-amnesia[httpx]'"
+    )
 
 
 class HttpxClientService(Service):

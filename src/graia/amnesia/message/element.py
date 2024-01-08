@@ -25,7 +25,7 @@ class Element:
 
     def __radd__(self: Element, content: MessageChain | list[Element] | Element | str) -> MessageChain:
         from . import MessageChain
-        
+
         if isinstance(content, str):
             content = [self._chain_class._text_class(content)]
         if isinstance(content, Element):

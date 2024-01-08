@@ -10,7 +10,9 @@ from launart.utilles import any_completed
 try:
     from uvicorn import Config, Server
 except ImportError:
-    raise ImportError("dependency 'uvicorn' is required for asgi service\nplease install it or install 'graia-amnesia[asgi]'")
+    raise ImportError(
+        "dependency 'uvicorn' is required for asgi service\nplease install it or install 'graia-amnesia[asgi]'"
+    )
 
 from . import asgitypes
 from .middleware import DispatcherMiddleware

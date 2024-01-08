@@ -60,3 +60,7 @@ dev = [
     "isort>=5.13.2",
     "pytest>=7.4.4",
 ]
+
+[tool.pdm.scripts]
+test = "pytest -v ./tests/"
+format = { composite = ["isort ./src/ ./tests/","black ./src/ ./tests/"] }

@@ -174,16 +174,13 @@ class MessageChain:
     __contains__ = has
 
     @overload
-    def __getitem__(self, item: type[E]) -> list[E]:
-        ...
+    def __getitem__(self, item: type[E]) -> list[E]: ...
 
     @overload
-    def __getitem__(self, item: int) -> Element:
-        ...
+    def __getitem__(self, item: int) -> Element: ...
 
     @overload
-    def __getitem__(self, item: slice) -> Self:
-        ...
+    def __getitem__(self, item: slice) -> Self: ...
 
     def __getitem__(self, item: type[Element] | int | slice) -> Any:
         """取出子消息链, 或元素.

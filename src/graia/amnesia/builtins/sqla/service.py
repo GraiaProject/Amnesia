@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal
+from typing import Literal, ClassVar
 
 from launart import Launart, Service
 from loguru import logger
@@ -10,6 +10,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.sql.base import Executable
 from sqlalchemy.sql.selectable import TypedReturnsRows
+from sqlalchemy.orm import DeclarativeBase
 
 from .manager import DatabaseManager, T_Row
 from .model import Base
@@ -20,6 +21,7 @@ class SqlalchemyService(Service):
     id: str = "database/sqlalchemy"
     db: DatabaseManager
     get_session: async_sessionmaker[AsyncSession]
+    base_class: ClassVar[type[DeclarativeBase]] = Base
 
     def __init__(
         self,
@@ -47,18 +49,18 @@ class SqlalchemyService(Service):
             logger.success("Database initialized!")
             if self.create_table_at == "preparing":
                 async with self.db.engine.begin() as conn:
-                    await conn.run_sync(Base.metadata.create_all)
+                    await conn.run_sync(self.base_class.metadata.create_all)
                     logger.success("Database tables created!")
 
         if self.create_table_at == "prepared":
             async with self.db.engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
+                await conn.run_sync(self.base_class.metadata.create_all)
                 logger.success("Database tables created!")
 
         async with self.stage("blocking"):
             if self.create_table_at == "blocking":
                 async with self.db.engine.begin() as conn:
-                    await conn.run_sync(Base.metadata.create_all)
+                    await conn.run_sync(self.base_class.metadata.create_all)
                     logger.success("Database tables created!")
             await manager.status.wait_for_sigexit()
         async with self.stage("cleanup"):

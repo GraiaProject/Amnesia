@@ -4,6 +4,7 @@ import asyncio
 import logging
 
 from launart import Launart, Service
+from launart.status import Phase
 from launart.utilles import any_completed
 from loguru import logger
 
@@ -85,7 +86,7 @@ class UvicornASGIService(Service):
         return set()
 
     @property
-    def stages(self):
+    def stages(self) -> set[Phase]:
         return {"preparing", "blocking", "cleanup"}
 
     async def launch(self, manager: Launart) -> None:

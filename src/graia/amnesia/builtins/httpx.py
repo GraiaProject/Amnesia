@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import cast
 
 from launart import Launart, Service
+from launart.status import Phase
 
 try:
     from httpx import AsyncClient, Timeout
@@ -21,14 +22,14 @@ class HttpxClientService(Service):
         super().__init__()
 
     @property
-    def stages(self):
+    def stages(self) -> set[Phase]:
         return {"preparing", "cleanup"}
 
     @property
     def required(self):
         return set()
 
-    async def launch(self, _: Launart):
+    async def launch(self, manager: Launart):
         async with self.stage("preparing"):
             if self.session is None:
                 self.session = AsyncClient(timeout=Timeout())

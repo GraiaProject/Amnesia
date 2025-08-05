@@ -7,6 +7,7 @@ from time import time
 from typing import Any
 
 from launart import Launart, Service
+from launart.status import Phase
 
 
 class Memcache:
@@ -75,7 +76,7 @@ class MemcacheService(Service):
         return set()
 
     @property
-    def stages(self):
+    def stages(self) -> set[Phase]:
         return {"blocking"}
 
     @property

@@ -3,12 +3,14 @@ from __future__ import annotations
 from typing import cast
 
 from launart import Launart, Service
+from launart.status import Phase
 
 try:
     from aiohttp import ClientSession, ClientTimeout
 except ImportError:
     raise ImportError(
-        "dependency 'aiohttp' is required for aiohttp client service\nplease install it or install 'graia-amnesia[aiohttp]'"
+        "dependency 'aiohttp' is required for aiohttp client service\n"
+        "please install it or install 'graia-amnesia[aiohttp]'"
     )
 
 
@@ -21,14 +23,14 @@ class AiohttpClientService(Service):
         super().__init__()
 
     @property
-    def stages(self):
+    def stages(self) -> set[Phase]:
         return {"preparing", "cleanup"}
 
     @property
     def required(self):
         return set()
 
-    async def launch(self, _: Launart):
+    async def launch(self, manager: Launart):
         async with self.stage("preparing"):
             if self.session is None:
                 self.session = ClientSession(timeout=ClientTimeout(total=None))

@@ -21,8 +21,14 @@ class SqlalchemyService(Service):
     db: DatabaseManager
     get_session: async_sessionmaker[AsyncSession]
 
-    def __init__(self, url: str | URL, engine_options: EngineOptions | None = None) -> None:
+    def __init__(
+        self,
+        url: str | URL,
+        engine_options: EngineOptions | None = None,
+        create_table_at: Literal["preparing", "prepared", "blocking"] = "preparing"
+    ) -> None:
         self.db = DatabaseManager(url, engine_options)
+        self.create_table_at = create_table_at
         super().__init__()
 
     @property
@@ -39,10 +45,21 @@ class SqlalchemyService(Service):
             await self.db.initialize()
             self.get_session = self.db.session_factory
             logger.success("Database initialized!")
-        async with self.stage("blocking"):
+            if self.create_table_at == "preparing":
+                async with self.db.engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+                    logger.success("Database tables created!")
+
+        if self.create_table_at == "prepared":
             async with self.db.engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
                 logger.success("Database tables created!")
+
+        async with self.stage("blocking"):
+            if self.create_table_at == "blocking":
+                async with self.db.engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+                    logger.success("Database tables created!")
             await manager.status.wait_for_sigexit()
         async with self.stage("cleanup"):
             await self.db.stop()

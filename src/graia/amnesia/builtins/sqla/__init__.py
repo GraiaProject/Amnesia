@@ -28,10 +28,7 @@ def pacth_logger(log_level: str | int = "INFO", sqlalchemy_echo: bool = False) -
     levels = {
         "alembic": log_level,
         "sqlalchemy": log_level,
-        **{
-            _qual_logger_name_for_cls(cls): echo_log_level
-            for cls in set(get_subclasses(Identified))
-        },
+        **{_qual_logger_name_for_cls(cls): echo_log_level for cls in set(get_subclasses(Identified))},
     }
 
     for name, level in levels.items():

@@ -53,12 +53,12 @@ includes = ["src/graia"]
 
 [tool.pdm.dev-dependencies]
 dev = [
-    "black<23.0.0,>=22.1.0",
+    "black>=25.0.0",
     "uvicorn>=0.23.2",
     "aiohttp>=3.9.1",
     "httpx>=0.26.0",
     "sqlalchemy>=2.0.25",
-    "isort>=5.13.2",
+    "isort==5.13.2",
     "pytest>=7.4.4",
 ]
 

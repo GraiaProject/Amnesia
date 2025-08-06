@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal, ClassVar, Any, TypeVar, cast
+from typing import Any, ClassVar, Literal, TypeVar, cast
 
 from launart import Launart, Service
 from loguru import logger
 from sqlalchemy import Table
-
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.ext.asyncio.engine import AsyncEngine
-from sqlalchemy.sql.base import Executable
-from sqlalchemy.sql.selectable import TypedReturnsRows
 from sqlalchemy.engine.result import Result
 from sqlalchemy.engine.url import URL
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio.engine import AsyncEngine
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.sql.base import Executable
+from sqlalchemy.sql.selectable import TypedReturnsRows
 
 from .model import Base
 from .types import EngineOptions
@@ -34,7 +33,7 @@ class SqlalchemyService(Service):
         engine_options: EngineOptions | None = None,
         session_options: dict[str, Any] | None = None,
         binds: dict[str, str | URL] | None = None,
-        create_table_at: Literal["preparing", "prepared", "blocking"] = "preparing"
+        create_table_at: Literal["preparing", "prepared", "blocking"] = "preparing",
     ) -> None:
         if engine_options is None:
             engine_options = {"echo": "debug", "pool_pre_ping": True}
@@ -54,6 +53,7 @@ class SqlalchemyService(Service):
         return {"preparing", "blocking", "cleanup"}
 
     async def initialize(self):
+        _binds = {}
         binds = {}
 
         for model in set(get_subclasses(self.base_class)):
@@ -62,41 +62,52 @@ class SqlalchemyService(Service):
             if table is None or (bind_key := table.info.get("bind_key")) is None:
                 continue
 
-            binds[model] = self.engines.get(bind_key, self.engines[""])
+            if bind_key in self.engines:
+                _binds[model] = self.engines[bind_key]
+                binds.setdefault(bind_key, []).append(model)
+            else:
+                _binds[model] = self.engines[""]
+                binds.setdefault("", []).append(model)
 
-        self.session_factory = async_sessionmaker(self.engines[""], binds=binds, **self.session_options)
+        self.session_factory = async_sessionmaker(self.engines[""], binds=_binds, **self.session_options)
         return binds
 
     def get_session(self, **local_kw):
         return self.session_factory(**local_kw)
 
     async def launch(self, manager: Launart):
-        binds: dict[type[Base], AsyncEngine] = {}
+        binds: dict[str, list[type[Base]]] = {}
 
         async with self.stage("preparing"):
             logger.info("Initializing database...")
             if self.create_table_at == "preparing":
                 binds = await self.initialize()
                 logger.success("Database initialized!")
-                for model, engine in binds.items():
-                    async with engine.begin() as conn:
-                        await conn.run_sync(model.__table__.create, checkfirst=True)
+                for key, models in binds.items():
+                    async with self.engines[key].begin() as conn:
+                        await conn.run_sync(
+                            self.base_class.metadata.create_all, tables=[m.__table__ for m in models], checkfirst=True
+                        )
                 logger.success("Database tables created!")
 
         if self.create_table_at != "preparing":
             binds = await self.initialize()
             logger.success("Database initialized!")
         if self.create_table_at == "prepared":
-            for model, engine in binds.items():
-                async with engine.begin() as conn:
-                    await conn.run_sync(model.__table__.create, checkfirst=True)
+            for key, models in binds.items():
+                async with self.engines[key].begin() as conn:
+                    await conn.run_sync(
+                        self.base_class.metadata.create_all, tables=[m.__table__ for m in models], checkfirst=True
+                    )
             logger.success("Database tables created!")
 
         async with self.stage("blocking"):
             if self.create_table_at == "blocking":
-                for model, engine in binds.items():
-                    async with engine.begin() as conn:
-                        await conn.run_sync(model.__table__.create, checkfirst=True)
+                for key, models in binds.items():
+                    async with self.engines[key].begin() as conn:
+                        await conn.run_sync(
+                            self.base_class.metadata.create_all, tables=[m.__table__ for m in models], checkfirst=True
+                        )
                 logger.success("Database tables created!")
             await manager.status.wait_for_sigexit()
         async with self.stage("cleanup"):
@@ -145,4 +156,3 @@ class SqlalchemyService(Service):
         async with self.get_session() as session:
             for row in rows:
                 await session.delete(row)
-

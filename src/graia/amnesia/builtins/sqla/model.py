@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast
+from typing import Any, Callable, TYPE_CHECKING, ClassVar
 
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncAttrs
@@ -20,7 +20,7 @@ def _setup_bind(cls: type["Base"]) -> None:
     if bind_key is None:
         bind_key = ""
 
-    cast(Table, cls.__table__).info["bind_key"] = bind_key
+    cls.__table__.info["bind_key"] = bind_key
 
 
 _callbacks = []
@@ -45,6 +45,9 @@ def remove_callback(callback: Callable[[type["Base"]], Any]) -> None:
 class Base(AsyncAttrs, DeclarativeBase):
     __abstract__ = True
     metadata = MetaData(naming_convention=_NAMING_CONVENTION)
+
+    if TYPE_CHECKING:
+        __table__: ClassVar[Table]  # type: ignore
 
     def __init_subclass__(cls, **kwargs):
         for callback in _callbacks:

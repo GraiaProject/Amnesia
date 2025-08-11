@@ -37,7 +37,7 @@ class SqlalchemyService(Service):
     ) -> None:
         if engine_options is None:
             engine_options = {"echo": "debug", "pool_pre_ping": True}
-        self.engines[""] = create_async_engine(url, **engine_options)
+        self.engines = {"": create_async_engine(url, **engine_options)}
         for key, bind_url in (binds or {}).items():
             self.engines[key] = create_async_engine(bind_url, **engine_options)
         self.create_table_at = create_table_at

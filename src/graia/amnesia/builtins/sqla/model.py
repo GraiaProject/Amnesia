@@ -52,7 +52,7 @@ class Base(AsyncAttrs, DeclarativeBase):
         if not hasattr(cls, "__mapper_args__") and "mapper_args" in kwargs:
             cls.__mapping_args__ = kwargs["mapper_args"]
 
-        super().__init_subclass__(**kwargs)
+        super().__init_subclass__()
 
         if not hasattr(cls, "__table__"):
             return

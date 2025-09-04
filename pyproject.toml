@@ -17,9 +17,6 @@ readme = "README.md"
 description = "a collection of shared components for graia"
 
 [project.optional-dependencies]
-asgi = [
-    "uvicorn>=0.23.2",
-]
 httpx = [
     "httpx>=0.26.0",
 ]
@@ -28,6 +25,12 @@ aiohttp = [
 ]
 sqla = [
     "sqlalchemy>=2.0.25",
+]
+uvi = [
+    "uvicorn>=0.35.0",
+]
+hyper = [
+    "hypercorn>=0.17.3",
 ]
 
 [build-system]
@@ -51,7 +54,11 @@ extend-exclude = '''
 [tool.pdm.build]
 includes = ["src/graia"]
 
-[tool.pdm.dev-dependencies]
+[tool.pdm.scripts]
+test = "pytest -v ./tests/"
+format = { composite = ["isort ./src/ ./tests/","black ./src/ ./tests/"] }
+
+[dependency-groups]
 dev = [
     "black>=25.0.0",
     "uvicorn>=0.23.2",
@@ -60,8 +67,5 @@ dev = [
     "sqlalchemy>=2.0.25",
     "isort==5.13.2",
     "pytest>=7.4.4",
+    "hypercorn>=0.17.3",
 ]
-
-[tool.pdm.scripts]
-test = "pytest -v ./tests/"
-format = { composite = ["isort ./src/ ./tests/","black ./src/ ./tests/"] }

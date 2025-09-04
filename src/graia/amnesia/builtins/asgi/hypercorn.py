@@ -6,44 +6,18 @@ import re
 from ssl import VerifyFlags, VerifyMode
 from typing import Any, List, Optional, TypedDict, Union
 
+from hypercorn.asyncio import serve
+from hypercorn.config import Config
+from hypercorn.logging import Logger
+from hypercorn.typing import ResponseSummary, WWWScope
 from launart import Launart, Service
 from launart.status import Phase
 from launart.utilles import any_completed
 from loguru import logger
 
-try:
-    from hypercorn.asyncio import serve
-    from hypercorn.config import Config
-    from hypercorn.logging import Logger
-    from hypercorn.typing import ResponseSummary, WWWScope
-except ImportError:
-    raise ImportError(
-        "dependency 'hypercorn' is required for asgi-service:hypercorn\nplease install it or install 'graia-amnesia[hyper]'"
-    )
-
 from . import asgitypes
+from .common import empty_asgi_handler
 from .middleware import DispatcherMiddleware
-
-
-async def _empty_asgi_handler(scope, receive, send):
-    if scope["type"] == "lifespan":
-        while True:
-            message = await receive()
-            if message["type"] == "lifespan.startup":
-                await send({"type": "lifespan.startup.complete"})
-                return
-            elif message["type"] == "lifespan.shutdown":
-                await send({"type": "lifespan.shutdown.complete"})
-                return
-
-    await send(
-        {
-            "type": "http.response.start",
-            "status": 404,
-            "headers": [(b"content-length", b"0")],
-        }
-    )
-    await send({"type": "http.response.body"})
 
 
 class HypercornOptions(TypedDict, total=False):
@@ -195,11 +169,14 @@ class HypercornASGIService(Service):
         port: int,
         mounts: dict[str, asgitypes.ASGI3Application] | None = None,
         options: HypercornOptions | None = None,
+        patch_logger: bool = True,
     ):
         self.host = host
         self.port = port
-        self.middleware = DispatcherMiddleware(mounts or {"\0\0\0": _empty_asgi_handler})
+        self.middleware = DispatcherMiddleware(mounts or {"\0\0\0": empty_asgi_handler})
         self.options = options or {}
+        if patch_logger:
+            self.options["logger_class"] = LoguruLogger  # type: ignore
         super().__init__()
 
     @property
@@ -231,6 +208,3 @@ class HypercornASGIService(Service):
                 await asyncio.wait_for(serve_task, timeout=5.0)
             except asyncio.TimeoutError:
                 logger.warning("timeout, force exit hypercorn server...")
-
-    def patch_logger(self) -> None:
-        self.options["logger_class"] = LoguruLogger  # type: ignore

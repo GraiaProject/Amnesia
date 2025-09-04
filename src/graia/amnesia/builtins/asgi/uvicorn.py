@@ -9,39 +9,13 @@ from launart import Launart, Service
 from launart.status import Phase
 from launart.utilles import any_completed
 from loguru import logger
+from uvicorn import Config, Server
 from uvicorn.config import LOG_LEVELS, HTTPProtocolType, LifespanType, LoopSetupType, WSProtocolType
-
-try:
-    from uvicorn import Config, Server
-except ImportError:
-    raise ImportError(
-        "dependency 'uvicorn' is required for asgi-service:uvicorn\nplease install it or install 'graia-amnesia[uvi]'"
-    )
 
 from ..utils import LoguruHandler
 from . import asgitypes
+from .common import empty_asgi_handler
 from .middleware import DispatcherMiddleware
-
-
-async def _empty_asgi_handler(scope, receive, send):
-    if scope["type"] == "lifespan":
-        while True:
-            message = await receive()
-            if message["type"] == "lifespan.startup":
-                await send({"type": "lifespan.startup.complete"})
-                return
-            elif message["type"] == "lifespan.shutdown":
-                await send({"type": "lifespan.shutdown.complete"})
-                return
-
-    await send(
-        {
-            "type": "http.response.start",
-            "status": 404,
-            "headers": [(b"content-length", b"0")],
-        }
-    )
-    await send({"type": "http.response.body"})
 
 
 class WithoutSigHandlerServer(Server):
@@ -153,10 +127,12 @@ class UvicornASGIService(Service):
         port: int,
         mounts: dict[str, asgitypes.ASGI3Application] | None = None,
         options: UvicornOptions | None = None,
+        patch_logger: bool = True,
     ):
         self.host = host
         self.port = port
-        self.middleware = DispatcherMiddleware(mounts or {"\0\0\0": _empty_asgi_handler})
+        self.patch_logger = patch_logger
+        self.middleware = DispatcherMiddleware(mounts or {"\0\0\0": empty_asgi_handler})
         self.options: UvicornOptions = options or {}
         super().__init__()
 
@@ -173,6 +149,8 @@ class UvicornASGIService(Service):
             self.server = WithoutSigHandlerServer(
                 Config(self.middleware, host=self.host, port=self.port, factory=False, **self.options)
             )
+            if self.patch_logger:
+                self._patch_logger()
             serve_task = asyncio.create_task(self.server.serve())
 
         async with self.stage("blocking"):
@@ -185,7 +163,7 @@ class UvicornASGIService(Service):
             if not serve_task.done():
                 logger.warning("timeout, force exit uvicorn server...")
 
-    def patch_logger(self) -> None:
+    def _patch_logger(self) -> None:
         log_level = 20
         if "log_level" in self.options and (_log_level := self.options["log_level"]) is not None:
             if isinstance(_log_level, str):

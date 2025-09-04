@@ -8,8 +8,6 @@ class LoguruHandler(logging.Handler):
     def emit(self, record: logging.LogRecord):
         try:
             level = logger.level(record.levelname).name
-            if record.levelno <= logging.INFO:
-                level = {"DEBUG": "TRACE", "INFO": "DEBUG"}.get(level, level)
         except ValueError:
             level = record.levelno
 
@@ -18,7 +16,9 @@ class LoguruHandler(logging.Handler):
             frame = frame.f_back
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+        logger.opt(depth=depth, exception=record.exc_info).patch(lambda rec: rec.update(name=record.name)).log(
+            level, record.getMessage()
+        )
 
 
 def get_subclasses(cls):

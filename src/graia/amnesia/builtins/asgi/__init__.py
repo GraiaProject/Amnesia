@@ -1,24 +1,21 @@
 try:
-    from .uvicorn import UvicornASGIService as UvicornASGIService
+    from .uvicorn import UvicornASGIService as _UvicornASGIService
 except ImportError:
-    UvicornASGIService = None
+    _UvicornASGIService = None
 
 try:
-    from .hypercorn import HypercornASGIService as HypercornASGIService
+    from .hypercorn import HypercornASGIService as _HypercornASGIService
 except ImportError:
-    HypercornASGIService = None
+    _HypercornASGIService = None
 
 
 def __getattr__(name):
     if name == "UvicornASGIService":
-        if UvicornASGIService is None:
-            raise ImportError("Please install `uvicorn` first. Install with `pip install graia-amnesia[uvi]`")
-        return UvicornASGIService
+        if _UvicornASGIService is None:
+            raise ImportError("Please install `uvicorn` first. Install with `pip install graia-amnesia[uvicorn]`")
+        return _UvicornASGIService
     if name == "HypercornASGIService":
-        if HypercornASGIService is None:
-            raise ImportError("Please install `hypercorn` first. Install with `pip install graia-amnesia[hyper]`")
-        return HypercornASGIService
+        if _HypercornASGIService is None:
+            raise ImportError("Please install `hypercorn` first. Install with `pip install graia-amnesia[hypercorn]`")
+        return _HypercornASGIService
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
-__all__ = ["UvicornASGIService", "HypercornASGIService"]

@@ -26,11 +26,11 @@ aiohttp = [
 sqla = [
     "sqlalchemy>=2.0.25",
 ]
-uvi = [
-    "uvicorn>=0.35.0",
-]
-hyper = [
+hypercorn = [
     "hypercorn>=0.17.3",
+]
+uvicorn = [
+    "uvicorn>=0.35.0",
 ]
 
 [build-system]

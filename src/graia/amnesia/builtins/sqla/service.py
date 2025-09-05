@@ -14,9 +14,9 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql.base import Executable
 from sqlalchemy.sql.selectable import TypedReturnsRows
 
+from ..utils import get_subclasses
 from .model import Base
 from .types import EngineOptions
-from .utils import get_subclasses
 
 T_Row = TypeVar("T_Row", bound=DeclarativeBase)
 

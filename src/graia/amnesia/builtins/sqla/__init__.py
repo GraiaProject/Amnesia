@@ -11,12 +11,12 @@ except ImportError:
         "dependency 'sqlalchemy' is required for sqlalchemy service\nplease install it or install 'graia-amnesia[sqla]'"
     )
 
+from ..utils import LoguruHandler, get_subclasses
 from .model import Base as Base
 from .service import SqlalchemyService as SqlalchemyService
-from .utils import LoguruHandler, get_subclasses
 
 
-def pacth_logger(log_level: str | int = "INFO", sqlalchemy_echo: bool = False) -> None:
+def patch_logger(log_level: str | int = "INFO", sqlalchemy_echo: bool = False) -> None:
     handler = LoguruHandler()
     logging.getLogger("sqlalchemy").addHandler(handler)
 

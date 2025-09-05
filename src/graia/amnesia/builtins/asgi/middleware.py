@@ -11,7 +11,7 @@ U = typing.TypeVar("U")
 
 
 class DispatcherMiddleware:
-    def __init__(self, mounts: typing.Dict[str, asgitypes.ASGI3Application]) -> None:
+    def __init__(self, mounts: dict[str, asgitypes.ASGI3Application]) -> None:
         self.mounts = mounts
 
     async def __call__(self, scope: asgitypes.Scope, receive: typing.Callable, send: typing.Callable) -> None:
@@ -42,8 +42,8 @@ class DispatcherMiddleware:
         send: asgitypes.ASGISendCallable,
     ) -> None:
         self.app_queues = {path: asyncio.Queue(MAX_QUEUE_SIZE) for path in self.mounts}
-        self.startup_complete = {path: False for path in self.mounts}
-        self.shutdown_complete = {path: False for path in self.mounts}
+        self.startup_complete = dict.fromkeys(self.mounts, False)
+        self.shutdown_complete = dict.fromkeys(self.mounts, False)
 
         tasks = []
         try:

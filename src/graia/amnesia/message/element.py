@@ -21,7 +21,7 @@ class Element:
             content = [content]
         if isinstance(content, MessageChain):
             content = content.content
-        return self._chain_class(content + [self])
+        return self._chain_class([*content, self])
 
     def __radd__(self: Element, content: MessageChain | list[Element] | Element | str) -> MessageChain:
         from . import MessageChain
@@ -32,7 +32,7 @@ class Element:
             content = [content]
         if isinstance(content, MessageChain):
             content = content.content
-        return self._chain_class([self] + content)
+        return self._chain_class([self, *content])
 
     def __eq__(self, other):
         if not isinstance(other, Element):

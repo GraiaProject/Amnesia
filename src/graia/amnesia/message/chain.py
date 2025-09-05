@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Sequence, TypeVar, overload
+from typing import TYPE_CHECKING, Any, TypeVar, overload
 from typing_extensions import Self
 
 from .element import Element, Text
@@ -204,7 +204,7 @@ class MessageChain:
         elif issubclass(item, Element):
             return self.get(item)
         else:
-            raise NotImplementedError("{0} is not allowed for item getting".format(type(item)))
+            raise NotImplementedError(f"{type(item)} is not allowed for item getting")
 
     def merge(self, *, copy: bool = True) -> Self:
         """合并相邻的 Text 项, 选择返回一个新的消息链实例
@@ -281,7 +281,7 @@ class MessageChain:
         return result
 
     def __repr__(self) -> str:
-        return f"MessageChain({repr(self.content)})"
+        return f"MessageChain({self.content!r})"
 
     def __iter__(self) -> Iterator[Element]:
         yield from self.content

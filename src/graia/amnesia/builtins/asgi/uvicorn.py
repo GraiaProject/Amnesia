@@ -1,9 +1,8 @@
-from __future__ import annotations
-
 import asyncio
 import logging
 import os
-from typing import IO, Any, Awaitable, Callable, TypedDict
+from collections.abc import Awaitable, Callable
+from typing import IO, Any, TypedDict
 
 from launart import Launart, Service
 from launart.status import Phase

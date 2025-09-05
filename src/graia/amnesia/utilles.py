@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import random
 import string
-from collections.abc import Callable
-from typing import Hashable, TypeVar, Union
+from collections.abc import Callable, Hashable
+from typing import TypeVar, Union
 
 T = TypeVar("T")
 H = TypeVar("H", bound=Hashable)

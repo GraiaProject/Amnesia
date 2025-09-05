@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any, Callable, ClassVar
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncAttrs

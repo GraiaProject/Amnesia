@@ -44,7 +44,7 @@ __all__ = (
 )
 
 
-class ASGIVersions(TypedDict, total=False):
+class ASGIVersions(TypedDict):
     spec_version: str
     version: Union[Literal["2.0"], Literal["3.0"]]
 

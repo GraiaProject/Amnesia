@@ -31,6 +31,7 @@ hypercorn = [
 ]
 uvicorn = [
     "uvicorn>=0.35.0",
+    "uvloop>=0.18.0; sys_platform != \"win32\"",
 ]
 
 [build-system]
@@ -45,8 +46,8 @@ force_sort_within_sections = false
 extra_standard_library = ["typing_extensions"]
 
 [tool.black]
-line_length = 120
-target-version = ["py38", "py39", "py310", "py311"]
+line-length = 120
+target-version = ["py39", "py310", "py311", "py312", "py313"]
 include = '\.pyi?$'
 extend-exclude = '''
 '''

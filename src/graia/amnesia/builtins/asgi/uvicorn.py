@@ -2,14 +2,15 @@ import asyncio
 import logging
 import os
 from collections.abc import Awaitable, Callable
-from typing import IO, Any, TypedDict
+from typing import IO, Any, TypedDict, Literal
 
 from launart import Launart, Service
 from launart.status import Phase
 from launart.utilles import any_completed
 from loguru import logger
 from uvicorn import Config, Server
-from uvicorn.config import LOG_LEVELS, HTTPProtocolType, LifespanType, LoopSetupType, WSProtocolType
+from uvicorn.config import LOG_LEVELS, HTTPProtocolType, LifespanType, WSProtocolType
+
 
 from ..utils import LoguruHandler
 from . import asgitypes
@@ -27,7 +28,7 @@ class UvicornOptions(TypedDict, total=False):
     """default: None"""
     fd: int | None
     """default: None"""
-    loop: LoopSetupType
+    loop: Literal["none", "auto", "asyncio", "uvloop"]
     """default: 'auto'"""
     http: type[asyncio.Protocol] | HTTPProtocolType
     """default: 'auto'"""

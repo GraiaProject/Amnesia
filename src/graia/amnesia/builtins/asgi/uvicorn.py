@@ -169,7 +169,9 @@ class UvicornASGIService(Service):
                 log_level = LOG_LEVELS[_log_level]
             else:
                 log_level = _log_level
-        PATCHES = ["uvicorn.error", "uvicorn.asgi", "uvicorn.access", "uvicorn"]
+        PATCHES = ["uvicorn.error", "uvicorn.asgi", "uvicorn"]
+        if "access_log" not in self.options or self.options.get("access_log", True):
+            PATCHES.append("uvicorn.access")
         for name in PATCHES:
             target = logging.getLogger(name)
             target.handlers = [LoguruHandler()]

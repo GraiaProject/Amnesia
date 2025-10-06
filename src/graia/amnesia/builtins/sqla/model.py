@@ -27,7 +27,10 @@ def register_callback(callback: Callable[[type["Base"], dict[str, Any]], Any], a
         callback: A callable that takes the class and its kwargs as arguments.
         after: If True, the callback will be called after the class is fully constructed.
     """
-    _callbacks.append(callback)
+    if after:
+        _after_callbacks.append(callback)
+    else:
+        _callbacks.append(callback)
 
 
 def remove_callback(callback: Callable[[type["Base"], dict[str, Any]], Any]) -> None:

@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 from collections.abc import Awaitable, Callable
-from typing import IO, Any, TypedDict, Literal
+from typing import IO, Any, Literal, TypedDict
 
 from launart import Launart, Service
 from launart.status import Phase
@@ -10,7 +10,6 @@ from launart.utilles import any_completed
 from loguru import logger
 from uvicorn import Config, Server
 from uvicorn.config import LOG_LEVELS, HTTPProtocolType, LifespanType, WSProtocolType
-
 
 from ..utils import LoguruHandler
 from . import asgitypes

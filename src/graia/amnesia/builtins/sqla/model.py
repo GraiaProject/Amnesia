@@ -16,11 +16,16 @@ _NAMING_CONVENTION = {
 
 
 _callbacks = []
+_after_callbacks = []
 
 
-def register_callback(callback: Callable[[type["Base"], dict[str, Any]], Any]) -> None:
+def register_callback(callback: Callable[[type["Base"], dict[str, Any]], Any], after=False) -> None:
     """
     Register a callback to be called when a new Base subclass is created.
+
+    Args:
+        callback: A callable that takes the class and its kwargs as arguments.
+        after: If True, the callback will be called after the class is fully constructed.
     """
     _callbacks.append(callback)
 
@@ -31,6 +36,8 @@ def remove_callback(callback: Callable[[type["Base"], dict[str, Any]], Any]) -> 
     """
     if callback in _callbacks:
         _callbacks.remove(callback)
+    if callback in _after_callbacks:
+        _after_callbacks.remove(callback)
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -55,12 +62,20 @@ class Base(AsyncAttrs, DeclarativeBase):
 
         super().__init_subclass__()
 
-        if not hasattr(cls, "__table__"):
-            return
+        for callback in _after_callbacks:
+            callback(cls, kwargs)
 
-        bind_key: str | None = getattr(cls, "__bind_key__", kwargs.get("bind_key", None))
 
-        if bind_key is None:
-            bind_key = ""
+def _setup_bind_key(cls: type[Base], kwargs: dict):
+    if not hasattr(cls, "__table__"):
+        return
 
-        cls.__table__.info["bind_key"] = bind_key
+    bind_key: str | None = getattr(cls, "__bind_key__", kwargs.get("bind_key", None))
+
+    if bind_key is None:
+        bind_key = ""
+
+    cls.__table__.info["bind_key"] = bind_key
+
+
+register_callback(_setup_bind_key, after=True)

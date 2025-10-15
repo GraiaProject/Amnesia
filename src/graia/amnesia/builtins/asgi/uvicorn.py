@@ -16,7 +16,6 @@ from . import asgitypes
 from .common import empty_asgi_handler
 from .middleware import DispatcherMiddleware
 
-
 LOOP_FACTORIES["winloop"] = "graia.amnesia.builtins.asgi.winloop:winloop_loop_factory"
 
 

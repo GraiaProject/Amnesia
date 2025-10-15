@@ -9,12 +9,15 @@ from launart.status import Phase
 from launart.utilles import any_completed
 from loguru import logger
 from uvicorn import Config, Server
-from uvicorn.config import LOG_LEVELS, HTTPProtocolType, LifespanType, WSProtocolType
+from uvicorn.config import LOG_LEVELS, LOOP_FACTORIES, HTTPProtocolType, LifespanType, WSProtocolType
 
 from ..utils import LoguruHandler
 from . import asgitypes
 from .common import empty_asgi_handler
 from .middleware import DispatcherMiddleware
+
+
+LOOP_FACTORIES["winloop"] = "graia.amnesia.builtins.asgi.winloop:winloop_loop_factory"
 
 
 class WithoutSigHandlerServer(Server):
@@ -27,7 +30,7 @@ class UvicornOptions(TypedDict, total=False):
     """default: None"""
     fd: int | None
     """default: None"""
-    loop: Literal["none", "auto", "asyncio", "uvloop"]
+    loop: Literal["none", "auto", "asyncio", "uvloop", "winloop"]
     """default: 'auto'"""
     http: type[asyncio.Protocol] | HTTPProtocolType
     """default: 'auto'"""
@@ -133,6 +136,24 @@ class UvicornASGIService(Service):
         self.patch_logger = patch_logger
         self.middleware = DispatcherMiddleware(mounts or {"\0\0\0": empty_asgi_handler})
         self.options: UvicornOptions = options or {}
+
+        if self.options.get("loop", "auto") == "auto":
+            try:
+                import uvloop  # type: ignore
+
+                self.options["loop"] = "uvloop"
+            except ImportError:
+                pass
+
+            try:
+                import winloop
+
+                self.options["loop"] = "winloop"
+            except ImportError:
+                pass
+
+            self.options["loop"] = "asyncio"
+
         super().__init__()
 
     @property

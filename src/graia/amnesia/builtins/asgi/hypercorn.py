@@ -3,8 +3,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+from dataclasses import dataclass, field
 from ssl import VerifyFlags, VerifyMode
-from typing import Any, TypedDict
+from typing import Any
 
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
@@ -20,108 +21,57 @@ from .common import empty_asgi_handler
 from .middleware import DispatcherMiddleware
 
 
-class HypercornOptions(TypedDict, total=False):
-    insecure_bind: str | list[str]
-    """default: []"""
-    quic_bind: str | list[str]
-    """default: []"""
-    root_path: str
-    """default: ''"""
-
-    access_log_format: str
-    """default: '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'"""
-    accesslog: logging.Logger | str | None
-    """default: None"""
-    alpn_protocols: list[str]
-    """default: ['h2', 'http/1.1']"""
-    alt_svc_headers: list[str]
-    """default: []"""
-    backlog: int
-    """default: 100"""
-    ca_certs: str | None
-    """default: None"""
-    certfile: str | None
-    """default: None"""
-    ciphers: str
-    """default: 'ECDHE+AESGCM'"""
-    dogstatsd_tags: str
-    """default: ''"""
-    errorlog: logging.Logger | str | None
-    """default: '-'"""
-    graceful_timeout: float
-    """default: 3.0"""
-    read_timeout: int | None
-    """default: None"""
-    group: int | None
-    """default: None"""
-    h11_max_incomplete_size: int
-    """default: 16 * 1024"""
-    h11_pass_raw_headers: bool
-    """default: False"""
-    h2_max_concurrent_streams: int
-    """default: 100"""
-    h2_max_header_list_size: int
-    """default: 2 ** 16"""
-    h2_max_inbound_frame_size: int
-    """default: 2 ** 14"""
-    include_date_header: bool
-    """default: True"""
-    include_server_header: bool
-    """default: True"""
-    keep_alive_timeout: float
-    """default: 5.0"""
-    keep_alive_max_requests: int
-    """default: 1000"""
-    keyfile: str | None
-    """default: None"""
-    keyfile_password: str | None
-    """default: None"""
-    logger_class: type
-    """default: hypercorn.logging.Logger"""
-    logconfig: str | None
-    """default: None"""
-    logconfig_dict: dict | None
-    """default: None"""
-    loglevel: str
-    """default: 'INFO'"""
-    max_app_queue_size: int
-    """default: 10"""
-    max_requests: int | None
-    """default: None"""
-    max_requests_jitter: int
-    """default: 0"""
-    pid_path: str | None
-    """default: None"""
-    server_names: list[str]
-    """default: []"""
-    shutdown_timeout: float
-    """default: 60.0"""
-    ssl_handshake_timeout: float
-    """default: 60.0"""
-    startup_timeout: float
-    """default: 60.0"""
-    statsd_host: str | None
-    """default: None"""
-    statsd_prefix: str
-    """default: ''"""
-    umask: int | None
-    """default: None"""
-    use_reloader: bool
-    """default: False"""
-    user: int | None
-    """default: None"""
-    verify_flags: VerifyFlags | None
-    """default: None"""
-    verify_mode: VerifyMode | None
-    """default: None"""
-    websocket_max_message_size: int
-    """default: 16 * 1024 * 1024"""
-    websocket_ping_interval: float | None
-    """default: None"""
-    worker_class: str
-    """default: 'asyncio'"""
-    wsgi_max_body_size: int
-    """default: 16 * 1024 * 1024"""
+@dataclass
+class HypercornOptions:
+    insecure_bind: str | list[str] = field(default_factory=list)
+    quic_bind: str | list[str] = field(default_factory=list)
+    root_path: str = ""
+    access_log_format: str = "%(h)s %(l)s %(u)s %(t)s \"%(r)s\" %(s)s %(b)s \"%(f)s\" \"%(a)s\""
+    accesslog: logging.Logger | str | None = None
+    alpn_protocols: list[str] = field(default_factory=lambda: ["h2", "http/1.1"])
+    alt_svc_headers: list[str] = field(default_factory=list)
+    backlog: int = 100
+    ca_certs: str | None = None
+    certfile: str | None = None
+    ciphers: str = 'ECDHE+AESGCM'  # noqa: SCS000
+    dogstatsd_tags: str = ''
+    errorlog: logging.Logger | str | None = '-'
+    graceful_timeout: float = 3.0
+    read_timeout: int | None = None
+    group: int | None = None
+    h11_max_incomplete_size: int = 16 * 1024
+    h11_pass_raw_headers: bool = False
+    h2_max_concurrent_streams: int = 100
+    h2_max_header_list_size: int = 2 ** 16
+    h2_max_inbound_frame_size: int = 2 ** 14
+    include_date_header: bool = True
+    include_server_header: bool = True
+    keep_alive_timeout: float = 5.0
+    keep_alive_max_requests: int = 1000
+    keyfile: str | None = None
+    keyfile_password: str | None = None
+    logconfig: str | None = None
+    logconfig_dict: dict | None = None
+    loglevel: str = "INFO"
+    max_app_queue_size: int = 10
+    max_requests: int | None = None
+    max_requests_jitter: int = 0
+    pid_path: str | None = None
+    server_names: list[str] = field(default_factory=list)
+    shutdown_timeout: float = 60.0
+    ssl_handshake_timeout: float = 60.0
+    startup_timeout: float = 60.0
+    statsd_host: str | None = None
+    statsd_prefix: str = ''
+    umask: int | None = None
+    use_reloader: bool = False
+    user: int | None = None
+    verify_flags: VerifyFlags | None = None
+    verify_mode: VerifyMode | None = None
+    websocket_max_message_size: int = 16 * 1024 * 1024
+    websocket_ping_interval: float | None = None
+    worker_class: str = "asyncio"
+    wsgi_max_body_size: int = 16 * 1024 * 1024
 
 
 class LoguruLogger(Logger):
@@ -174,9 +124,8 @@ class HypercornASGIService(Service):
         self.host = host
         self.port = port
         self.middleware = DispatcherMiddleware(mounts or {"\0\0\0": empty_asgi_handler})
-        self.options = options or {}
-        if patch_logger:
-            self.options["logger_class"] = LoguruLogger  # type: ignore
+        self.options = options or HypercornOptions()
+        self.patch_logger = patch_logger
         super().__init__()
 
     @property
@@ -190,10 +139,13 @@ class HypercornASGIService(Service):
     async def launch(self, manager: Launart) -> None:
         async with self.stage("preparing"):
             shutdown_trigger = asyncio.Event()
+            options = vars(self.options)
+            if self.patch_logger:
+                options["logger_class"] = LoguruLogger
             serve_task = asyncio.create_task(
                 serve(
                     self.middleware,  # type: ignore
-                    Config.from_mapping(bind=f"{self.host}:{self.port}", **self.options),
+                    Config.from_mapping(bind=f"{self.host}:{self.port}", **options),
                     shutdown_trigger=shutdown_trigger.wait,
                 )
             )

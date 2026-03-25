@@ -3,7 +3,7 @@ from typing import cast
 from launart import Launart, Service
 from launart.status import Phase
 
-from .http_model import Request, Response, Timeout
+from .httptypes import Request, Response, Timeout
 
 try:
     from niquests import AsyncSession
@@ -27,7 +27,7 @@ class NiquestsClientService(Service):
 
     @property
     def stages(self) -> set[Phase]:
-        return {"preparing", "cleanup", "blocking"}
+        return {"preparing", "cleanup"}
 
     @property
     def required(self):
@@ -37,8 +37,6 @@ class NiquestsClientService(Service):
         async with self.stage("preparing"):
             if self.session is None:
                 self.session = AsyncSession()
-        async with self.stage("blocking"):
-            await manager.status.wait_for_sigexit()
         async with self.stage("cleanup"):
             await self.session.close()
 

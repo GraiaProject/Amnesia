@@ -5,7 +5,7 @@ from typing import cast
 from launart import Launart, Service
 from launart.status import Phase
 
-from .http_model import ByteStream, Request, Response, Timeout
+from .httptypes import Request, Response, Timeout
 
 try:
     from pyreqwest.client import Client, ClientBuilder
@@ -28,7 +28,7 @@ class PyReqwestClientService(Service):
 
     @property
     def stages(self) -> set[Phase]:
-        return {"preparing", "blocking", "cleanup"}
+        return {"preparing", "cleanup"}
 
     @property
     def required(self):
@@ -38,9 +38,6 @@ class PyReqwestClientService(Service):
         async with self.stage("preparing"):
             if self.session is None:
                 self.session = ClientBuilder().follow_redirects(self.follow_redirects).build()
-        async with self.stage("blocking"):
-            await manager.status.wait_for_sigexit()
-
         async with self.stage("cleanup"):
             await self.session.close()
 

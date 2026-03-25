@@ -4,7 +4,6 @@ from typing_extensions import deprecated
 from launart import Launart, Service
 from launart.status import Phase
 
-
 try:
     from httpx import AsyncClient
     from httpx import Timeout as ClientTimeout

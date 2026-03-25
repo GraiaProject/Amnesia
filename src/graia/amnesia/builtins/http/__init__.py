@@ -19,8 +19,9 @@ except ImportError:
     _PyReqwestClientService = None
 
 from launart import Launart
-from .httptypes import Request, Response
+
 from .base import HttpClientService
+from .httptypes import Request, Response
 
 
 async def request(payload: Request, *, stream: bool = False, chunk_size: int = 1024) -> Response:

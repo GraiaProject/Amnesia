@@ -11,7 +11,7 @@ from launart.status import Phase
 from launart.utilles import any_completed
 from loguru import logger
 from uvicorn import Config, Server
-from uvicorn.config import LOG_LEVELS, LOOP_FACTORIES, HTTPProtocolType, LifespanType, WSProtocolType, LOGGING_CONFIG
+from uvicorn.config import LOG_LEVELS, LOGGING_CONFIG, LOOP_FACTORIES, HTTPProtocolType, LifespanType, WSProtocolType
 
 from ..utils import LoguruHandler
 from . import asgitypes
@@ -56,7 +56,7 @@ class UvicornOptions:
     server_header: bool = True
     date_header: bool = True
     forwarded_allow_ips: list[str] | str | None = None
-    root_path: str = ''
+    root_path: str = ""
     limit_concurrency: int | None = None
     limit_max_requests: int | None = None
     backlog: int = 2048

@@ -5,10 +5,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from granian.constants import Interfaces, SSLProtocols, TaskImpl, HTTPModes
-from granian.http import HTTP2Settings, HTTP1Settings
-from granian.server.embed import Server
+from granian.constants import HTTPModes, Interfaces, SSLProtocols, TaskImpl
+from granian.http import HTTP1Settings, HTTP2Settings
 from granian.log import LogLevels, log_levels_map
+from granian.server.embed import Server
 from launart import Launart, Service
 from launart.status import Phase
 from launart.utilles import any_completed
@@ -16,7 +16,6 @@ from loguru import logger
 
 from ..utils import LoguruHandler
 from . import asgitypes
-
 from .common import empty_asgi_handler
 from .middleware import DispatcherMiddleware
 
@@ -89,7 +88,10 @@ class GranianASGIService(Service):
     async def launch(self, manager: Launart) -> None:
         async with self.stage("preparing"):
             if self.patch_logger:
-                self.options.log_access_format = self.options.log_access_format or '%(addr)s - "%(method)s %(path)s %(protocol)s" %(status)d %(dt_ms).3f'
+                self.options.log_access_format = (
+                    self.options.log_access_format
+                    or '%(addr)s - "%(method)s %(path)s %(protocol)s" %(status)d %(dt_ms).3f'
+                )
             self.server = Server(self.middleware, self.host, self.port, interface=Interfaces.ASGI, **vars(self.options))
             if self.patch_logger:
                 self._patch_logger()

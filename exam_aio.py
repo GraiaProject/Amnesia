@@ -6,10 +6,11 @@ from launart.status import Phase
 
 from graia.amnesia.builtins.http import request
 from graia.amnesia.builtins.http.aiohttp import AiohttpClientService
+
 # from graia.amnesia.builtins.http.httpx import HttpxClientService
 # from graia.amnesia.builtins.http.niquests import NiquestsClientService
 # from graia.amnesia.builtins.http.pyreqwest import PyReqwestClientService
-from graia.amnesia.builtins.http.httptypes import Request, HTTPStatusError
+from graia.amnesia.builtins.http.httptypes import HTTPStatusError, Request
 
 manager = it(Launart)
 manager.add_component(AiohttpClientService())

@@ -30,6 +30,9 @@ async def app(scope, receive, send):
         }
     )
 
+
 manager = it(Launart)
-manager.add_component(HypercornASGIService("127.0.0.1", 5333, {"/": app}, HypercornOptions(accesslog="-"), patch_logger=True))
+manager.add_component(
+    HypercornASGIService("127.0.0.1", 5333, {"/": app}, HypercornOptions(accesslog="-"), patch_logger=True)
+)
 manager.launch_blocking()

@@ -32,5 +32,5 @@ async def app(scope, receive, send):
 
 
 manager = it(Launart)
-manager.add_component(GranianASGIService("127.0.0.1", 5333, {"/": app}, options=GranianOptions(log_access=True), patch_logger=True))
+manager.add_component(GranianASGIService("127.0.0.1", 5333, {"/": app}, options=GranianOptions(log_access=False), patch_logger=True))
 manager.launch_blocking()

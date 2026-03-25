@@ -23,6 +23,12 @@ httpx = [
 aiohttp = [
     "aiohttp>=3.9.1",
 ]
+niquests = [
+    "niquests>=3.18.2",
+]
+pyreqwest = [
+    "pyreqwest>=0.11.6; python_version >= \"3.11\"",
+]
 sqla = [
     "sqlalchemy>=2.0.25",
 ]
@@ -34,12 +40,6 @@ uvicorn = [
     "uvloop>=0.18.0; sys_platform != \"win32\"",
     "websockets>=15.0.1",
     "winloop>=0.3.0; sys_platform == \"win32\"",
-]
-niquests = [
-    "niquests>=3.18.2",
-]
-pyreqwest = [
-    "pyreqwest>=0.11.6; python_version >= \"3.11\"",
 ]
 granian = [
     "granian>=2.7.2",

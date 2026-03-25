@@ -1,8 +1,8 @@
 from typing import cast
 
-from launart import Launart, Service
-from launart.status import Phase
+from launart import Launart
 
+from .base import HttpClientService
 from .httptypes import Request, Response, Timeout
 
 try:
@@ -17,21 +17,13 @@ except ImportError:
 VERSIONS = {11: "HTTP/1.1", 20: "HTTP/2.0", 30: "HTTP/3.0"}
 
 
-class NiquestsClientService(Service):
+class NiquestsClientService(HttpClientService):
     id = "http.client/niquests"
     session: AsyncSession
 
-    def __init__(self, session: AsyncSession | None = None) -> None:
+    def __init__(self, session: AsyncSession | None = None, follow_redirects: bool = True) -> None:
         self.session = cast(AsyncSession, session)
-        super().__init__()
-
-    @property
-    def stages(self) -> set[Phase]:
-        return {"preparing", "cleanup"}
-
-    @property
-    def required(self):
-        return set()
+        super().__init__(follow_redirects=follow_redirects)
 
     async def launch(self, manager: Launart):
         async with self.stage("preparing"):
@@ -72,6 +64,7 @@ class NiquestsClientService(Service):
                 proxies={"http": payload.proxy} if isinstance(payload.proxy, str) else None,
                 timeout=timeout,
                 stream=False,
+                allow_redirects=payload.follow_redirects or self.follow_redirects,
             )
             return Response(
                 status_code=resp.status_code or 200,
@@ -93,6 +86,7 @@ class NiquestsClientService(Service):
             proxies={"http": payload.proxy} if isinstance(payload.proxy, str) else None,
             timeout=timeout,
             stream=True,
+            allow_redirects=payload.follow_redirects or self.follow_redirects,
         )
         return Response(
             status_code=resp.status_code or 200,

@@ -1,8 +1,8 @@
 from typing import cast
 
-from launart import Launart, Service
-from launart.status import Phase
+from launart import Launart
 
+from .base import HttpClientService
 from .httptypes import Request, Response, Timeout
 
 try:
@@ -14,21 +14,13 @@ except ImportError:
     )
 
 
-class AiohttpClientService(Service):
+class AiohttpClientService(HttpClientService):
     id = "http.client/aiohttp"
     session: ClientSession
 
-    def __init__(self, session: ClientSession | None = None) -> None:
+    def __init__(self, session: ClientSession | None = None, follow_redirects: bool = True) -> None:
         self.session = cast(ClientSession, session)
-        super().__init__()
-
-    @property
-    def stages(self) -> set[Phase]:
-        return {"preparing", "cleanup"}
-
-    @property
-    def required(self):
-        return set()
+        super().__init__(follow_redirects=follow_redirects)
 
     async def launch(self, manager: Launart):
         async with self.stage("preparing"):
@@ -68,7 +60,7 @@ class AiohttpClientService(Service):
                 else next(iter(payload.proxy.values())) if payload.proxy else None
             ),
             timeout=timeout,
-            allow_redirects=payload.follow_redirects,
+            allow_redirects=payload.follow_redirects or self.follow_redirects,
         )
         if not stream:
             ans = Response(

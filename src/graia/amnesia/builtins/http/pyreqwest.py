@@ -2,9 +2,9 @@ from datetime import timedelta
 from io import BytesIO
 from typing import cast
 
-from launart import Launart, Service
-from launart.status import Phase
+from launart import Launart
 
+from .base import HttpClientService
 from .httptypes import Request, Response, Timeout
 
 try:
@@ -17,22 +17,13 @@ except ImportError:
     )
 
 
-class PyReqwestClientService(Service):
+class PyReqwestClientService(HttpClientService):
     id = "http.client/pyreqwest"
     session: Client
 
     def __init__(self, session: Client | None = None, follow_redirects: bool = True) -> None:
         self.session = cast(Client, session)
-        self.follow_redirects = follow_redirects
-        super().__init__()
-
-    @property
-    def stages(self) -> set[Phase]:
-        return {"preparing", "cleanup"}
-
-    @property
-    def required(self):
-        return set()
+        super().__init__(follow_redirects=follow_redirects)
 
     async def launch(self, manager: Launart):
         async with self.stage("preparing"):

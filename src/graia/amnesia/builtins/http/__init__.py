@@ -20,11 +20,13 @@ except ImportError:
 
 from launart import Launart
 from .httptypes import Request, Response
+from .base import HttpClientService
 
 
 async def request(payload: Request, *, stream: bool = False, chunk_size: int = 1024) -> Response:
-    services = [_AiohttpClientService, _HttpxClientService, _NiquestsClientService, _PyReqwestClientService]
-    services = [*filter(None, services)]
+    services: list[type[HttpClientService]] = [
+        *filter(None, [_AiohttpClientService, _HttpxClientService, _NiquestsClientService, _PyReqwestClientService])
+    ]
     if not services:
         raise RuntimeError("Please install at least one of them: `aiohttp`, `httpx`, `niquests`, `pyreqwest`")
     manager = Launart.current()

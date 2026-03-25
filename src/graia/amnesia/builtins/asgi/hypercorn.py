@@ -26,7 +26,7 @@ class HypercornOptions:
     insecure_bind: str | list[str] = field(default_factory=list)
     quic_bind: str | list[str] = field(default_factory=list)
     root_path: str = ""
-    access_log_format: str = "%(h)s %(l)s %(u)s %(t)s \"%(r)s\" %(s)s %(b)s \"%(f)s\" \"%(a)s\""
+    access_log_format: str = '%(h)s %(l)s %(l)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
     accesslog: logging.Logger | str | None = None
     alpn_protocols: list[str] = field(default_factory=lambda: ["h2", "http/1.1"])
     alt_svc_headers: list[str] = field(default_factory=list)

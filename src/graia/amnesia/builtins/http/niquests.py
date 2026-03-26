@@ -17,13 +17,8 @@ except ImportError:
 VERSIONS = {11: "HTTP/1.1", 20: "HTTP/2.0", 30: "HTTP/3.0"}
 
 
-class NiquestsClientService(HttpClientService):
+class NiquestsClientService(HttpClientService[AsyncSession]):
     id = "http.client/niquests"
-    session: AsyncSession
-
-    def __init__(self, session: AsyncSession | None = None, follow_redirects: bool = True) -> None:
-        self.session = cast(AsyncSession, session)
-        super().__init__(follow_redirects=follow_redirects)
 
     async def launch(self, manager: Launart):
         async with self.stage("preparing"):

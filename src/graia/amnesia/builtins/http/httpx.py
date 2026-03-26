@@ -14,13 +14,8 @@ except ImportError:
     )
 
 
-class HttpxClientService(HttpClientService):
+class HttpxClientService(HttpClientService[AsyncClient]):
     id = "http.client/httpx"
-    session: AsyncClient
-
-    def __init__(self, session: AsyncClient | None = None, follow_redirects: bool = True) -> None:
-        self.session = cast(AsyncClient, session)
-        super().__init__(follow_redirects=follow_redirects)
 
     async def launch(self, manager: Launart):
         async with self.stage("preparing"):

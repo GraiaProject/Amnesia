@@ -1,5 +1,3 @@
-from typing import cast
-
 from launart import Launart
 
 from .base import HttpClientService
@@ -14,13 +12,8 @@ except ImportError:
     )
 
 
-class AiohttpClientService(HttpClientService):
+class AiohttpClientService(HttpClientService[ClientSession]):
     id = "http.client/aiohttp"
-    session: ClientSession
-
-    def __init__(self, session: ClientSession | None = None, follow_redirects: bool = True) -> None:
-        self.session = cast(ClientSession, session)
-        super().__init__(follow_redirects=follow_redirects)
 
     async def launch(self, manager: Launart):
         async with self.stage("preparing"):

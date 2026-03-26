@@ -6,17 +6,14 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import IO, Any, Literal
 
-from launart import Launart, Service
-from launart.status import Phase
+from launart import Launart
 from launart.utilles import any_completed
 from loguru import logger
 from uvicorn import Config, Server
 from uvicorn.config import LOG_LEVELS, LOGGING_CONFIG, LOOP_FACTORIES, HTTPProtocolType, LifespanType, WSProtocolType
 
 from ..utils import LoguruHandler
-from . import asgitypes
-from .common import empty_asgi_handler
-from .middleware import DispatcherMiddleware
+from .base import ASGIService
 
 LOOP_FACTORIES["winloop"] = "graia.amnesia.builtins.asgi.winloop:winloop_loop_factory"
 
@@ -75,53 +72,13 @@ class UvicornOptions:
     h11_max_incomplete_event_size: int | None = None
 
 
-class UvicornASGIService(Service):
+class UvicornASGIService(ASGIService[UvicornOptions]):
     id = "asgi.service/uvicorn"
+    server: WithoutSigHandlerServer
 
-    middleware: DispatcherMiddleware
-    host: str
-    port: int
-
-    def __init__(
-        self,
-        host: str,
-        port: int,
-        mounts: dict[str, asgitypes.ASGI3Application] | None = None,
-        options: UvicornOptions | None = None,
-        patch_logger: bool = True,
-    ):
-        self.host = host
-        self.port = port
-        self.patch_logger = patch_logger
-        self.middleware = DispatcherMiddleware(mounts or {"\0\0\0": empty_asgi_handler})
-        self.options: UvicornOptions = options or UvicornOptions()
-
-        if self.options.loop == "auto":
-            try:
-                import uvloop  # type: ignore
-
-                self.options.loop = "uvloop"
-            except ImportError:
-                pass
-
-            try:
-                import winloop
-
-                self.options.loop = "winloop"
-            except ImportError:
-                pass
-
-            self.options.loop = "asyncio"
-
-        super().__init__()
-
-    @property
-    def required(self):
-        return set()
-
-    @property
-    def stages(self) -> set[Phase]:
-        return {"preparing", "blocking", "cleanup"}
+    @staticmethod
+    def _options_default() -> UvicornOptions:
+        return UvicornOptions()
 
     async def launch(self, manager: Launart) -> None:
         async with self.stage("preparing"):

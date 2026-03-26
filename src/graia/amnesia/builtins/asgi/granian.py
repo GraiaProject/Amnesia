@@ -9,15 +9,13 @@ from granian.constants import HTTPModes, Interfaces, SSLProtocols, TaskImpl
 from granian.http import HTTP1Settings, HTTP2Settings
 from granian.log import LogLevels, log_levels_map
 from granian.server.embed import Server
-from launart import Launart, Service
+from launart import Launart
 from launart.status import Phase
 from launart.utilles import any_completed
 from loguru import logger
 
 from ..utils import LoguruHandler
-from . import asgitypes
-from .common import empty_asgi_handler
-from .middleware import DispatcherMiddleware
+from .base import ASGIService
 
 
 @dataclass
@@ -27,7 +25,6 @@ class GranianOptions:
     blocking_threads_idle_timeout: int = 30
     runtime_threads: int = 1
     runtime_blocking_threads: int | None = None
-    # loop: Loops = Loops.auto
     task_impl: TaskImpl = TaskImpl.asyncio
     http: HTTPModes = HTTPModes.auto
     websockets: bool = True
@@ -55,35 +52,13 @@ class GranianOptions:
     static_path_expires: int = 86400
 
 
-class GranianASGIService(Service):
+class GranianASGIService(ASGIService[GranianOptions]):
     id = "asgi.service/granian"
+    server: Server
 
-    middleware: DispatcherMiddleware
-    host: str
-    port: int
-
-    def __init__(
-        self,
-        host: str,
-        port: int,
-        mounts: dict[str, asgitypes.ASGI3Application] | None = None,
-        options: GranianOptions | None = None,
-        patch_logger: bool = True,
-    ):
-        self.host = host
-        self.port = port
-        self.patch_logger = patch_logger
-        self.middleware = DispatcherMiddleware(mounts or {"\0\0\0": empty_asgi_handler})
-        self.options: GranianOptions = options or GranianOptions()
-        super().__init__()
-
-    @property
-    def required(self):
-        return set()
-
-    @property
-    def stages(self) -> set[Phase]:
-        return {"preparing", "blocking", "cleanup"}
+    @staticmethod
+    def _options_default() -> GranianOptions:
+        return GranianOptions()
 
     async def launch(self, manager: Launart) -> None:
         async with self.stage("preparing"):
@@ -92,7 +67,9 @@ class GranianASGIService(Service):
                     self.options.log_access_format
                     or '%(addr)s - "%(method)s %(path)s %(protocol)s" %(status)d %(dt_ms).3f'
                 )
-            self.server = Server(self.middleware, self.host, self.port, interface=Interfaces.ASGI, **vars(self.options))
+            options = vars(self.options)
+            options.pop("loop")
+            self.server = Server(self.middleware, self.host, self.port, interface=Interfaces.ASGI, **options)
             if self.patch_logger:
                 self._patch_logger()
             serve_task = asyncio.create_task(self.server.serve())

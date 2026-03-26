@@ -17,13 +17,8 @@ except ImportError:
     )
 
 
-class PyReqwestClientService(HttpClientService):
+class PyReqwestClientService(HttpClientService[Client]):
     id = "http.client/pyreqwest"
-    session: Client
-
-    def __init__(self, session: Client | None = None, follow_redirects: bool = True) -> None:
-        self.session = cast(Client, session)
-        super().__init__(follow_redirects=follow_redirects)
 
     async def launch(self, manager: Launart):
         async with self.stage("preparing"):

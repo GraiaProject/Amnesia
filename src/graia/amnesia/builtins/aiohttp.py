@@ -1,4 +1,5 @@
 from typing import cast
+from typing_extensions import deprecated
 
 from launart import Launart, Service
 from launart.status import Phase
@@ -12,6 +13,7 @@ except ImportError:
     )
 
 
+@deprecated("`graia.amnesia.builtins.AiohttpClientService` has moved to `graia.amnesia.builtins.http`.")
 class AiohttpClientService(Service):
     id = "http.client/aiohttp"
     session: ClientSession

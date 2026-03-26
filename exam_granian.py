@@ -1,8 +1,8 @@
 from creart import it
 from launart import Launart
 
-from graia.amnesia.builtins.asgi import HypercornASGIService
-from graia.amnesia.builtins.asgi.hypercorn import HypercornOptions
+from graia.amnesia.builtins.asgi import GranianASGIService
+from graia.amnesia.builtins.asgi.granian import GranianOptions
 
 
 async def app(scope, receive, send):
@@ -33,6 +33,6 @@ async def app(scope, receive, send):
 
 manager = it(Launart)
 manager.add_component(
-    HypercornASGIService("127.0.0.1", 5333, {"/": app}, HypercornOptions(accesslog="-"), patch_logger=True)
+    GranianASGIService("127.0.0.1", 5333, {"/": app}, options=GranianOptions(log_access=False), patch_logger=True)
 )
 manager.launch_blocking()

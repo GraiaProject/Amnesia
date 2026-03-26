@@ -10,8 +10,10 @@ class LoguruHandler(logging.Handler):
             level = logger.level(record.levelname).name
         except ValueError:
             level = record.levelno
-
-        frame, depth = sys._getframe(6), 6
+        try:
+            frame, depth = sys._getframe(6), 6
+        except ValueError:
+            frame, depth = None, 1
         while frame and frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back
             depth += 1

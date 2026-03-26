@@ -30,6 +30,7 @@ async def app(scope, receive, send):
         }
     )
 
+
 manager = it(Launart)
 manager.add_component(
     UvicornASGIService("127.0.0.1", 5333, {"/": app}, options=UvicornOptions(access_log=False), patch_logger=True)

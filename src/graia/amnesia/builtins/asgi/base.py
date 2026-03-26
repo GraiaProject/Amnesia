@@ -1,7 +1,7 @@
 import asyncio
 from abc import ABCMeta, abstractmethod
 from enum import StrEnum
-from typing import Generic, TypeVar, Literal, TypeAlias
+from typing import Generic, Literal, TypeAlias, TypeVar
 
 from launart import Service
 from launart.status import Phase
@@ -9,7 +9,6 @@ from launart.status import Phase
 from . import asgitypes
 from .common import empty_asgi_handler
 from .middleware import DispatcherMiddleware
-
 
 TOption = TypeVar("TOption")
 Loops: TypeAlias = Literal["auto", "asyncio", "uvloop", "winloop"]

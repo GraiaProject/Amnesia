@@ -82,10 +82,16 @@ class SqlalchemyService(Service):
                 binds = await self.initialize()
                 logger.success("Database initialized!")
                 for key, models in binds.items():
-                    async with self.engines[key].begin() as conn:
-                        await conn.run_sync(
-                            self.base_class.metadata.create_all, tables=[m.__table__ for m in models], checkfirst=True
-                        )
+                    try:
+                        async with self.engines[key].begin() as conn:
+                            await conn.run_sync(
+                                self.base_class.metadata.create_all,
+                                tables=[m.__table__ for m in models],
+                                checkfirst=True,
+                            )
+                    except Exception as e:
+                        logger.opt(exception=e).error(f"Failed to create tables for bind '{key}': {e}")
+                        continue
                 logger.success("Database tables created!")
 
         if self.create_table_at != "preparing":
@@ -93,19 +99,29 @@ class SqlalchemyService(Service):
             logger.success("Database initialized!")
         if self.create_table_at == "prepared":
             for key, models in binds.items():
-                async with self.engines[key].begin() as conn:
-                    await conn.run_sync(
-                        self.base_class.metadata.create_all, tables=[m.__table__ for m in models], checkfirst=True
-                    )
+                try:
+                    async with self.engines[key].begin() as conn:
+                        await conn.run_sync(
+                            self.base_class.metadata.create_all, tables=[m.__table__ for m in models], checkfirst=True
+                        )
+                except Exception as e:
+                    logger.opt(exception=e).error(f"Failed to create tables for bind '{key}': {e}")
+                    continue
             logger.success("Database tables created!")
 
         async with self.stage("blocking"):
             if self.create_table_at == "blocking":
                 for key, models in binds.items():
-                    async with self.engines[key].begin() as conn:
-                        await conn.run_sync(
-                            self.base_class.metadata.create_all, tables=[m.__table__ for m in models], checkfirst=True
-                        )
+                    try:
+                        async with self.engines[key].begin() as conn:
+                            await conn.run_sync(
+                                self.base_class.metadata.create_all,
+                                tables=[m.__table__ for m in models],
+                                checkfirst=True,
+                            )
+                    except Exception as e:
+                        logger.opt(exception=e).error(f"Failed to create tables for bind '{key}': {e}")
+                        continue
                 logger.success("Database tables created!")
             await manager.status.wait_for_sigexit()
         async with self.stage("cleanup"):
